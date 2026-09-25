@@ -11,6 +11,7 @@
   const dialogContent = document.getElementById('detail-content')
 
   const titleCase = (status) => status.charAt(0).toUpperCase() + status.slice(1)
+  const storyLabel = (story) => story.displayName ?? story.storyId
   const storyStatuses = (story) => [
     ...new Set(
       story.variants
@@ -25,6 +26,7 @@
     if (!state.query) return true
     const text = [
       story.storyId,
+      story.displayName,
       story.component,
       story.sourcePath,
       ...story.variants.map((variant) => variant.name),
@@ -230,14 +232,14 @@
       'Open ' +
         label +
         ' image for ' +
-        story.storyId +
+        storyLabel(story) +
         ' (' +
         variant.name +
         ')',
     )
     const image = document.createElement('img')
     image.src = source
-    image.alt = label + ': ' + story.storyId
+    image.alt = label + ': ' + storyLabel(story)
     image.loading = detail ? 'eager' : 'lazy'
     const placeholder = document.createElement('span')
     placeholder.className = 'image-placeholder'
@@ -259,12 +261,12 @@
     slider.className = 'slider'
     const before = document.createElement('img')
     before.src = variant.before
-    before.alt = 'Before: ' + story.storyId
+    before.alt = 'Before: ' + storyLabel(story)
     before.loading = detail ? 'eager' : 'lazy'
     const after = document.createElement('img')
     after.className = 'slider-after'
     after.src = variant.after
-    after.alt = 'After: ' + story.storyId
+    after.alt = 'After: ' + storyLabel(story)
     after.loading = detail ? 'eager' : 'lazy'
     const input = document.createElement('input')
     input.className = 'slider-control'
@@ -334,7 +336,7 @@
   }
 
   function openDetail(story, variant) {
-    dialogTitle.textContent = story.component + ' / ' + story.storyId
+    dialogTitle.textContent = story.component + ' / ' + storyLabel(story)
     dialogVariant.textContent = variant.name
     dialogContent.replaceChildren(createVariant(variant, story, true))
     dialog.showModal()
@@ -348,7 +350,7 @@
     for (const status of storyStatuses(story)) appendBadge(head, status)
     const title = document.createElement('strong')
     title.className = 'story-title'
-    title.textContent = story.storyId
+    title.textContent = storyLabel(story)
     const component = document.createElement('span')
     component.className = 'story-component'
     component.textContent = story.component

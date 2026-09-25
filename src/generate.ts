@@ -5,11 +5,13 @@ import { ResultAsync } from 'neverthrow'
 
 import { renderReport } from '#render'
 import { buildReportModel, parseRegOutput } from '#report-model'
+import { addCsfDisplayNames } from '#story-name'
 
 export type GenerateOptions = {
   inputPath: string
   assetsDirectory: string
   outputPath: string
+  storiesDirectory?: string | undefined
   baselineDirectory?: string | undefined
 }
 
@@ -40,6 +42,7 @@ export const generateReport = (
   const inputPath = resolve(options.inputPath)
   const assetsDirectory = resolve(options.assetsDirectory)
   const outputPath = resolve(options.outputPath)
+  const storiesDirectory = resolve(options.storiesDirectory ?? process.cwd())
 
   return ResultAsync.fromPromise(
     readFile(inputPath, 'utf8'),
@@ -47,6 +50,7 @@ export const generateReport = (
   )
     .andThen(parseRegOutput)
     .andThen(buildReportModel)
+    .andThen((model) => addCsfDisplayNames(model, storiesDirectory))
     .andThen((model) => {
       const assetsPrefix = relative(dirname(outputPath), assetsDirectory)
         .split(sep)

@@ -90,7 +90,7 @@ describe('vrt-report CLI', () => {
   it('prints help and returns a usage error for missing required options', () => {
     const { directory, binPath } = installPackage()
     const outputPath = join(directory, 'unused.html')
-    const usage = `Usage: vrt-report --input <out.json> --assets-dir <directory> --output <report.html> [--baseline-dir <relative-path>]
+    const usage = `Usage: vrt-report --input <out.json> --assets-dir <directory> --output <report.html> [--stories-dir <directory>] [--baseline-dir <relative-path>]
 
 Generate a standalone HTML report from reg-cli output.
 
@@ -98,6 +98,7 @@ Options:
   --input         Path to .reg/out.json
   --assets-dir    Directory containing actual/ and diff/
   --output        Path to the generated HTML file
+  --stories-dir   Root directory containing Storybook stories (default: current directory)
   --baseline-dir  Relative URL to baseline/actual (default: ../../baseline/actual)
   -h, --help      Show this help
 `

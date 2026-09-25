@@ -11,6 +11,7 @@ export type ReportVariant = {
 type ReportStory = {
   id: string
   storyId: string
+  displayName?: string
   component: string
   sourcePath: string
   directories: string[]
