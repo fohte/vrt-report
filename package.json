@@ -10,15 +10,31 @@
     "registry": "https://registry.npmjs.org/"
   },
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "vrt-report": "./bin/vrt-report.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
   "imports": {
-    "#*": "./src/*.ts"
+    "#*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
   },
   "scripts": {
+    "build": "tsc --project tsconfig.build.json",
     "lint": "eslint .",
     "format:eslint": "eslint --fix .",
     "format:prettier": "prettier --write .",
     "format": "conc -m 1 pnpm:format:eslint pnpm:format:prettier",
     "test": "conc pnpm:test:type pnpm:test:unit",
+    "prepack": "pnpm build",
+    "pretest": "pnpm build",
     "test:type": "tsc --noEmit",
     "test:unit": "vitest run"
   },

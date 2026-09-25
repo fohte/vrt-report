@@ -1,6 +1,8 @@
-import { err, ok, type Result } from 'neverthrow'
-
-export const greet = (name: string): Result<string, Error> => {
-  if (!name) return err(new Error('name must not be empty'))
-  return ok(`Hello, ${name}!`)
-}
+export { DEFAULT_BASELINE_DIR, renderReport } from '#render'
+export type {
+  RegOutput,
+  ReportModel,
+  ReportStory,
+  ReportVariant,
+} from '#report-model'
+export { buildReportModel, parseRegOutput } from '#report-model'
