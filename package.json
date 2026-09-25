@@ -1,0 +1,35 @@
+{
+  "name": "vrt-report",
+  "private": true,
+  "packageManager": "pnpm@12.3.4",
+  "type": "module",
+  "imports": {
+    "#*": "./src/*.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "format:eslint": "eslint --fix .",
+    "format:prettier": "prettier --write .",
+    "format": "conc -m 1 pnpm:format:eslint pnpm:format:prettier",
+    "test": "conc pnpm:test:type pnpm:test:unit",
+    "test:type": "tsc --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "neverthrow": "8.2.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.2",
+    "@fohte/eslint-config": "0.5.0",
+    "@ninoseki/eslint-plugin-neverthrow": "0.3.1",
+    "@tsconfig/node-lts": "24.0.1",
+    "@tsconfig/strictest": "2.0.8",
+    "@types/node": "24.13.4",
+    "concurrently": "10.0.5",
+    "eslint": "10.10.0",
+    "knip": "6.35.1",
+    "prettier": "3.9.6",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
+}
