@@ -1,7 +1,14 @@
 {
-  "name": "vrt-report",
-  "private": true,
+  "name": "@fohte/vrt-report",
   "packageManager": "pnpm@12.4.2",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fohte/vrt-report.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "type": "module",
   "imports": {
     "#*": "./src/*.ts"
