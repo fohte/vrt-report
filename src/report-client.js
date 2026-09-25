@@ -287,6 +287,14 @@
   }
 
   function createComparison(variant, story, detail) {
+    if (variant.status === 'unchanged') {
+      const comparison = document.createElement('div')
+      comparison.className = 'comparison'
+      comparison.append(
+        createPane('Current', variant.after, story, variant, detail),
+      )
+      return comparison
+    }
     if (state.view === 'diff') {
       const comparison = document.createElement('div')
       comparison.className = 'comparison'
@@ -364,10 +372,11 @@
     const unchanged = story.variants.filter(
       (variant) => variant.status === 'unchanged',
     )
-    if (unchanged.length > 0 && changedVariants.length === 0) {
-      for (const variant of unchanged)
-        variants.append(createVariant(variant, story, false))
-    } else if (unchanged.length > 0) {
+    const initialVariants =
+      changedVariants.length > 0 ? changedVariants : unchanged
+    for (const variant of initialVariants)
+      variants.append(createVariant(variant, story, false))
+    if (changedVariants.length > 0 && unchanged.length > 0) {
       const toggle = document.createElement('button')
       toggle.type = 'button'
       toggle.className = 'show-unchanged'

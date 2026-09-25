@@ -52,6 +52,18 @@ const createStory = (imageKey: ImageKey): ReportStory => ({
   variants: [],
 })
 
+const getOrCreateStory = (
+  storiesById: Map<string, ReportStory>,
+  imageKey: ImageKey,
+): ReportStory => {
+  const existing = storiesById.get(imageKey.storyPath)
+  if (existing !== undefined) return existing
+
+  const story = createStory(imageKey)
+  storiesById.set(story.id, story)
+  return story
+}
+
 class InvalidReportError extends Error {
   constructor(message: string, cause?: unknown) {
     super(message, { cause })
@@ -144,11 +156,7 @@ export const buildReportModel = (
       const imageKey = parseImageKey(key)
       if (imageKey.isErr()) return err(imageKey.error)
 
-      let story = storiesById.get(imageKey.value.storyPath)
-      if (story === undefined) {
-        story = createStory(imageKey.value)
-        storiesById.set(story.id, story)
-      }
+      const story = getOrCreateStory(storiesById, imageKey.value)
 
       if (
         story.variants.some(
@@ -166,11 +174,7 @@ export const buildReportModel = (
     const imageKey = parseImageKey(key)
     if (imageKey.isErr()) return err(imageKey.error)
 
-    let story = storiesById.get(imageKey.value.storyPath)
-    if (story === undefined) {
-      story = createStory(imageKey.value)
-      storiesById.set(story.id, story)
-    }
+    const story = getOrCreateStory(storiesById, imageKey.value)
     if (
       story.variants.some((variant) => variant.name === imageKey.value.variant)
     ) {
