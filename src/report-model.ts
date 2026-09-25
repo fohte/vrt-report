@@ -1,6 +1,6 @@
 import { err, ok, Result } from 'neverthrow'
 
-export type ChangeStatus = 'changed' | 'new' | 'deleted' | 'unchanged'
+type ChangeStatus = 'changed' | 'new' | 'deleted' | 'unchanged'
 
 export type ReportVariant = {
   name: string
@@ -8,7 +8,7 @@ export type ReportVariant = {
   key: string
 }
 
-export type ReportStory = {
+type ReportStory = {
   id: string
   storyId: string
   component: string
