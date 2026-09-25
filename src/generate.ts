@@ -50,7 +50,13 @@ export const generateReport = (
   )
     .andThen(parseRegOutput)
     .andThen(buildReportModel)
-    .andThen((model) => addCsfDisplayNames(model, storiesDirectory))
+    .andThen((model) =>
+      addCsfDisplayNames(
+        model,
+        storiesDirectory,
+        options.storiesDirectory !== undefined,
+      ),
+    )
     .andThen((model) => {
       const assetsPrefix = relative(dirname(outputPath), assetsDirectory)
         .split(sep)

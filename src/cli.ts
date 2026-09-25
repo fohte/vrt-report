@@ -13,7 +13,7 @@ Options:
   --input         Path to .reg/out.json
   --assets-dir    Directory containing actual/ and diff/
   --output        Path to the generated HTML file
-  --stories-dir   Root directory containing Storybook stories (default: current directory)
+  --stories-dir   Storybook project root (requires Storybook >=9; default: current directory)
   --baseline-dir  Relative URL to baseline/actual (default: ${DEFAULT_BASELINE_DIR})
   -h, --help      Show this help
 `
