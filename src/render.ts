@@ -12,7 +12,7 @@ type RenderedVariant = Omit<ReportVariant, 'key'> & {
 
 type RenderOptions = {
   assetsPrefix: string
-  baselineDirectory?: string
+  baselineDirectory?: string | undefined
 }
 
 const escapeScriptData = (value: unknown): string =>

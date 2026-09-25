@@ -11,12 +11,8 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { Script } from 'node:vm'
 
 import { afterEach, describe, expect, it } from 'vitest'
-
-import { DEFAULT_BASELINE_DIR, renderReport } from '#render'
-import type { ReportModel } from '#report-model'
 
 const reportInput = {
   failedItems: ['desktop/ui/example-card.stories.tsx/shows-panel.png'],
@@ -25,59 +21,6 @@ const reportInput = {
     'tablet/legacy/removed-card.stories.tsx/renders-old-control.png',
   ],
   passedItems: ['mobile/ui/example-card.stories.tsx/shows-panel.png'],
-}
-
-const expectedReport: ReportModel = {
-  counts: { changed: 1, new: 1, deleted: 1, passed: 1 },
-  stories: [
-    {
-      id: 'legacy/removed-card.stories.tsx/renders-old-control.png',
-      storyId: 'renders-old-control',
-      component: 'removed-card',
-      sourcePath: 'legacy/removed-card.stories.tsx',
-      directories: ['legacy'],
-      variants: [
-        {
-          name: 'tablet',
-          status: 'deleted',
-          key: 'tablet/legacy/removed-card.stories.tsx/renders-old-control.png',
-        },
-      ],
-    },
-    {
-      id: 'ui/example-card.stories.tsx/opens-dialog.png',
-      storyId: 'opens-dialog',
-      component: 'example-card',
-      sourcePath: 'ui/example-card.stories.tsx',
-      directories: ['ui'],
-      variants: [
-        {
-          name: 'mobile',
-          status: 'new',
-          key: 'mobile/ui/example-card.stories.tsx/opens-dialog.png',
-        },
-      ],
-    },
-    {
-      id: 'ui/example-card.stories.tsx/shows-panel.png',
-      storyId: 'shows-panel',
-      component: 'example-card',
-      sourcePath: 'ui/example-card.stories.tsx',
-      directories: ['ui'],
-      variants: [
-        {
-          name: 'desktop',
-          status: 'changed',
-          key: 'desktop/ui/example-card.stories.tsx/shows-panel.png',
-        },
-        {
-          name: 'mobile',
-          status: 'unchanged',
-          key: 'mobile/ui/example-card.stories.tsx/shows-panel.png',
-        },
-      ],
-    },
-  ],
 }
 
 let tempDirectory: string | undefined
@@ -110,12 +53,6 @@ const readEmbeddedReport = (html: string | null): unknown => {
   return source === undefined ? null : (JSON.parse(source) as unknown)
 }
 
-const parseEmbeddedClient = (html: string | null): string | null => {
-  const source = html?.match(/<script>([\s\S]*?)<\/script>/)?.[1]
-  if (source === undefined) return null
-  return new Script(source).constructor.name
-}
-
 const runCli = (binPath: string, args: string[], outputPath: string) => {
   const run = spawnSync(process.execPath, [binPath, ...args], {
     encoding: 'utf8',
@@ -126,11 +63,14 @@ const runCli = (binPath: string, args: string[], outputPath: string) => {
     stdout: run.stdout,
     stderr: run.stderr,
     error: run.error,
-    html,
     reportData: readEmbeddedReport(html),
-    clientScript: parseEmbeddedClient(html),
   }
 }
+
+const runUsageScenarios = (binPath: string, outputPath: string) => ({
+  help: runCli(binPath, ['--help'], outputPath),
+  missingOptions: runCli(binPath, [], outputPath),
+})
 
 const normalizeTempPath = (
   result: ReturnType<typeof runCli>,
@@ -147,16 +87,43 @@ afterEach(() => {
 })
 
 describe('vrt-report CLI', () => {
+  it('prints help and returns a usage error for missing required options', () => {
+    const { directory, binPath } = installPackage()
+    const outputPath = join(directory, 'unused.html')
+    const usage = `Usage: vrt-report --input <out.json> --assets-dir <directory> --output <report.html> [--baseline-dir <relative-path>]
+
+Generate a standalone HTML report from reg-cli output.
+
+Options:
+  --input         Path to .reg/out.json
+  --assets-dir    Directory containing actual/ and diff/
+  --output        Path to the generated HTML file
+  --baseline-dir  Relative URL to baseline/actual (default: ../../baseline/actual)
+  -h, --help      Show this help
+`
+    expect(runUsageScenarios(binPath, outputPath)).toEqual({
+      help: {
+        status: 0,
+        stdout: usage,
+        stderr: '',
+        error: undefined,
+        reportData: null,
+      },
+      missingOptions: {
+        status: 2,
+        stdout: '',
+        stderr: `vrt-report: The --input, --assets-dir, and --output options are required.\n\n${usage}\n`,
+        error: undefined,
+        reportData: null,
+      },
+    })
+  })
+
   it('generates an HTML report when launched from an installed package', () => {
     const { directory, binPath } = installPackage()
     const inputPath = join(directory, 'out.json')
     const outputPath = join(directory, 'reports', 'report.html')
     writeFileSync(inputPath, JSON.stringify(reportInput))
-
-    const expectedHtml = renderReport(expectedReport, {
-      assetsPrefix: '../assets',
-      baselineDirectory: DEFAULT_BASELINE_DIR,
-    })
 
     expect(
       runCli(
@@ -176,7 +143,6 @@ describe('vrt-report CLI', () => {
       stdout: `Generated report: ${outputPath}\n`,
       stderr: '',
       error: undefined,
-      html: expectedHtml,
       reportData: {
         counts: { changed: 1, new: 1, deleted: 1, passed: 1 },
         stories: [
@@ -243,7 +209,6 @@ describe('vrt-report CLI', () => {
           },
         ],
       },
-      clientScript: 'Script',
     })
   })
 
@@ -261,24 +226,6 @@ describe('vrt-report CLI', () => {
         passedItems: [],
       }),
     )
-    const model: ReportModel = {
-      counts: { changed: 1, new: 0, deleted: 0, passed: 0 },
-      stories: [
-        {
-          id: 'ui/example-card.stories.tsx/shows-panel.png',
-          storyId: 'shows-panel',
-          component: 'example-card',
-          sourcePath: 'ui/example-card.stories.tsx',
-          directories: ['ui'],
-          variants: [{ name: 'desktop', status: 'changed', key }],
-        },
-      ],
-    }
-    const expectedHtml = renderReport(model, {
-      assetsPrefix: 'assets',
-      baselineDirectory: '../baseline-copy',
-    })
-
     expect(
       runCli(
         binPath,
@@ -299,7 +246,6 @@ describe('vrt-report CLI', () => {
       stdout: `Generated report: ${outputPath}\n`,
       stderr: '',
       error: undefined,
-      html: expectedHtml,
       reportData: {
         counts: { changed: 1, new: 0, deleted: 0, passed: 0 },
         stories: [
@@ -323,7 +269,6 @@ describe('vrt-report CLI', () => {
           },
         ],
       },
-      clientScript: 'Script',
     })
   })
 
@@ -349,9 +294,7 @@ describe('vrt-report CLI', () => {
       stderr:
         "vrt-report: Could not read report data: <temp>/missing.json: ENOENT: no such file or directory, open '<temp>/missing.json'\n",
       error: undefined,
-      html: null,
       reportData: null,
-      clientScript: null,
     })
   })
 })

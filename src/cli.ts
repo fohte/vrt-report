@@ -67,7 +67,7 @@ const parseArgs = (args: string[]): Result<ParsedArgs, Error> => {
       inputPath,
       assetsDirectory,
       outputPath,
-      ...(baselineDirectory === undefined ? {} : { baselineDirectory }),
+      baselineDirectory,
     },
   })
 }

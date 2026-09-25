@@ -10,7 +10,7 @@ export type GenerateOptions = {
   inputPath: string
   assetsDirectory: string
   outputPath: string
-  baselineDirectory?: string
+  baselineDirectory?: string | undefined
 }
 
 class InputFileError extends Error {
@@ -46,9 +46,7 @@ export const generateReport = (
         .join('/')
       const html = renderReport(model, {
         assetsPrefix,
-        ...(options.baselineDirectory === undefined
-          ? {}
-          : { baselineDirectory: options.baselineDirectory }),
+        baselineDirectory: options.baselineDirectory,
       })
 
       return ResultAsync.fromPromise(
