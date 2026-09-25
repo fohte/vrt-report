@@ -1,0 +1,14 @@
+{
+  "failedItems": [
+    "desktop/playground/nebula/workflows/review/priority-routing/long-form/fictional-review-queue.stories.tsx/shows-a-long-approval-summary-with-multiple-assignee-options.svg"
+  ],
+  "newItems": [
+    "mobile/playground/nebula/workflows/review/priority-routing/fictional-notification-panel.stories.tsx/introduces-a-new-reviewer-badge.svg"
+  ],
+  "deletedItems": [
+    "desktop/playground/archive/retired/fictional-archive-chip.stories.tsx/shows-a-removed-archive-state.svg"
+  ],
+  "passedItems": [
+    "mobile/playground/nebula/workflows/review/priority-routing/long-form/fictional-review-queue.stories.tsx/shows-a-long-approval-summary-with-multiple-assignee-options.svg"
+  ]
+}

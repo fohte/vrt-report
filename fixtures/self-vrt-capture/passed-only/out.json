@@ -1,0 +1,8 @@
+{
+  "failedItems": [],
+  "newItems": [],
+  "deletedItems": [],
+  "passedItems": [
+    "desktop/synthetic/stability/fictional-consistent-shell.stories.tsx/keeps-the-same-layout.svg"
+  ]
+}
