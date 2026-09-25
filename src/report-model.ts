@@ -43,10 +43,6 @@ type ImageKey = {
   directories: string[]
 }
 
-type MutableStory = Omit<ReportStory, 'variants'> & {
-  variants: ReportVariant[]
-}
-
 class InvalidReportError extends Error {
   constructor(message: string, cause?: unknown) {
     super(message, { cause })
@@ -69,35 +65,42 @@ const isRegOutput = (value: unknown): value is RegOutput =>
 
 const parseImageKey = (key: string): Result<ImageKey, Error> => {
   const segments = key.split('/')
+  const variant = segments[0]
+  const storyFile = segments.at(-2)
+  const imageFile = segments.at(-1)
   if (
     key.startsWith('/') ||
     key.includes('\\') ||
-    segments.length < 3 ||
     segments.some(
       (segment) => segment.length === 0 || segment === '.' || segment === '..',
-    )
+    ) ||
+    imageFile === undefined
   ) {
     return err(new InvalidReportError(`Invalid screenshot key: ${key}`))
   }
 
-  const variant = segments[0]
-  const storyFile = segments.at(-2)
-  const storyFileName = segments.at(-1)
-  if (
-    variant === undefined ||
-    storyFile === undefined ||
-    storyFileName === undefined
-  ) {
-    return err(new InvalidReportError(`Invalid screenshot key: ${key}`))
-  }
+  const hasStorybookLayout =
+    segments.length >= 3 && /\.stories\.(?:[cm]?[jt]sx?)$/.test(storyFile ?? '')
+  const directories = hasStorybookLayout
+    ? segments.slice(1, -2)
+    : segments.slice(0, -2)
+  const storyId = imageFile.replace(/\.[^.]+$/, '')
+  const component = hasStorybookLayout
+    ? (storyFile ?? '').replace(/\.stories\.(?:[cm]?[jt]sx?)$/, '')
+    : (storyFile ?? 'Screenshots')
+  const sourcePath = hasStorybookLayout
+    ? segments.slice(1, -1).join('/')
+    : segments.slice(0, -1).join('/')
+  const storyPath = hasStorybookLayout ? segments.slice(1).join('/') : key
 
-  const directories = segments.slice(1, -2)
-  const storyId = storyFileName.replace(/\.[^.]+$/, '')
-  const component = storyFile.replace(/\.stories\.(?:[cm]?[jt]sx?)$/, '')
-  const sourcePath = segments.slice(1, -1).join('/')
-  const storyPath = segments.slice(1).join('/')
-
-  return ok({ variant, storyPath, storyId, component, sourcePath, directories })
+  return ok({
+    variant: hasStorybookLayout ? (variant ?? 'default') : 'default',
+    storyPath,
+    storyId,
+    component,
+    sourcePath,
+    directories,
+  })
 }
 
 export const parseRegOutput = (source: string): Result<RegOutput, Error> => {
@@ -120,7 +123,7 @@ export const parseRegOutput = (source: string): Result<RegOutput, Error> => {
 export const buildReportModel = (
   input: RegOutput,
 ): Result<ReportModel, Error> => {
-  const storiesById = new Map<string, MutableStory>()
+  const storiesById = new Map<string, ReportStory>()
   const categories: Array<[ChangeStatus, string[]]> = [
     ['changed', input.failedItems],
     ['new', input.newItems],

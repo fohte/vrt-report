@@ -45,6 +45,53 @@ describe('buildReportModel', () => {
         'Invalid screenshot key: desktop/../../outside.stories.tsx/opens-panel.png',
     })
   })
+
+  it('accepts flat and nested screenshot keys without Storybook file semantics', () => {
+    expect(
+      resultSpec(
+        buildReportModel({
+          failedItems: [
+            'screenshots/site/view-dark-phone.png',
+            'single-view.png',
+          ],
+          newItems: [],
+          deletedItems: [],
+          passedItems: [],
+        }),
+      ),
+    ).toEqual({
+      kind: 'ok',
+      value: {
+        counts: { changed: 2, new: 0, deleted: 0, passed: 0 },
+        stories: [
+          {
+            id: 'screenshots/site/view-dark-phone.png',
+            storyId: 'view-dark-phone',
+            component: 'site',
+            sourcePath: 'screenshots/site',
+            directories: ['screenshots'],
+            variants: [
+              {
+                name: 'default',
+                status: 'changed',
+                key: 'screenshots/site/view-dark-phone.png',
+              },
+            ],
+          },
+          {
+            id: 'single-view.png',
+            storyId: 'single-view',
+            component: 'Screenshots',
+            sourcePath: '',
+            directories: [],
+            variants: [
+              { name: 'default', status: 'changed', key: 'single-view.png' },
+            ],
+          },
+        ],
+      },
+    })
+  })
 })
 
 describe('parseRegOutput', () => {
