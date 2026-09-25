@@ -13,6 +13,7 @@ export const reportClient = String.raw`
 
   const titleCase = (status) => status.charAt(0).toUpperCase() + status.slice(1);
   const storyStatuses = (story) => [...new Set(story.variants.map((variant) => variant.status).filter((status) => status !== 'unchanged'))];
+  const countStoriesWithStatus = (status) => report.stories.filter((story) => storyStatuses(story).includes(status)).length;
   const matchesSearch = (story) => {
     if (!state.query) return true;
     const text = [story.storyId, story.component, story.sourcePath, ...story.variants.map((variant) => variant.name)].join(' ').toLowerCase();
@@ -333,9 +334,9 @@ export const reportClient = String.raw`
   const filters = document.getElementById('filters');
   for (const [filter, label, value] of [
     ['all', 'All', report.stories.length],
-    ['changed', 'Changed', report.counts.changed],
-    ['new', 'New', report.counts.new],
-    ['deleted', 'Deleted', report.counts.deleted],
+    ['changed', 'Changed', countStoriesWithStatus('changed')],
+    ['new', 'New', countStoriesWithStatus('new')],
+    ['deleted', 'Deleted', countStoriesWithStatus('deleted')],
   ]) {
     const button = document.createElement('button');
     button.type = 'button';

@@ -173,6 +173,7 @@ button { color: inherit; }
   border-radius: 5px;
   background: #0b0e12;
 }
+[hidden] { display: none !important; }
 .image-button { padding: 0; cursor: zoom-in; }
 .image-button:hover { border-color: var(--accent); }
 .image-button img { display: block; width: 100%; height: 100%; max-height: 62vh; object-fit: contain; }
