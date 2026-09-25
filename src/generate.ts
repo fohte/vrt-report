@@ -27,6 +27,13 @@ class OutputFileError extends Error {
   }
 }
 
+class ReportAssetError extends Error {
+  constructor(cause: unknown) {
+    super('Could not read report assets', { cause })
+    this.name = new.target.name
+  }
+}
+
 export const generateReport = (
   options: GenerateOptions,
 ): ResultAsync<{ outputPath: string }, Error> => {
@@ -44,21 +51,39 @@ export const generateReport = (
       const assetsPrefix = relative(dirname(outputPath), assetsDirectory)
         .split(sep)
         .join('/')
-      const html = renderReport(model, {
-        assetsPrefix,
-        baselineDirectory: options.baselineDirectory,
-      })
 
       return ResultAsync.fromPromise(
-        mkdir(dirname(outputPath), { recursive: true }),
-        (cause) => new OutputFileError(outputPath, cause),
-      )
-        .andThen(() =>
-          ResultAsync.fromPromise(
-            writeFile(outputPath, html, 'utf8'),
-            (cause) => new OutputFileError(outputPath, cause),
-          ),
+        Promise.all([
+          readFile(new URL('./report-template.html', import.meta.url), 'utf8'),
+          readFile(new URL('./report-client.js', import.meta.url), 'utf8'),
+          readFile(new URL('./report-styles.css', import.meta.url), 'utf8'),
+          readFile(new URL('./report-responsive.css', import.meta.url), 'utf8'),
+        ]),
+        (cause) => new ReportAssetError(cause),
+      ).andThen(([template, clientScript, styles, responsiveStyles]) => {
+        const combinedStyles = [styles, responsiveStyles].join('\n')
+        const html = renderReport(
+          model,
+          {
+            assetsPrefix,
+            baselineDirectory: options.baselineDirectory,
+          },
+          template,
+          combinedStyles,
+          clientScript,
         )
-        .map(() => ({ outputPath }))
+
+        return ResultAsync.fromPromise(
+          mkdir(dirname(outputPath), { recursive: true }),
+          (cause) => new OutputFileError(outputPath, cause),
+        )
+          .andThen(() =>
+            ResultAsync.fromPromise(
+              writeFile(outputPath, html, 'utf8'),
+              (cause) => new OutputFileError(outputPath, cause),
+            ),
+          )
+          .map(() => ({ outputPath }))
+      })
     })
 }

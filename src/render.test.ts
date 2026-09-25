@@ -1,8 +1,23 @@
+import { readFileSync } from 'node:fs'
+
 import { Result } from 'neverthrow'
 import { describe, expect, it } from 'vitest'
 
 import { renderReport } from '#render'
 import type { ReportModel } from '#report-model'
+
+const template = readFileSync(
+  new URL('./report-template.html', import.meta.url),
+  'utf8',
+)
+const styles = [
+  readFileSync(new URL('./report-styles.css', import.meta.url), 'utf8'),
+  readFileSync(new URL('./report-responsive.css', import.meta.url), 'utf8'),
+].join('\n')
+const clientScript = readFileSync(
+  new URL('./report-client.js', import.meta.url),
+  'utf8',
+)
 
 const embeddedData = (html: string) => {
   const source = html.match(
@@ -39,7 +54,15 @@ describe('renderReport', () => {
     }
 
     expect(
-      embeddedData(renderReport(model, { assetsPrefix: 'assets' })),
+      embeddedData(
+        renderReport(
+          model,
+          { assetsPrefix: 'assets' },
+          template,
+          styles,
+          clientScript,
+        ),
+      ),
     ).toEqual({
       kind: 'ok',
       value: {
@@ -83,7 +106,17 @@ describe('renderReport', () => {
       ],
     }
 
-    expect(embeddedData(renderReport(model, { assetsPrefix: '' }))).toEqual({
+    expect(
+      embeddedData(
+        renderReport(
+          model,
+          { assetsPrefix: '' },
+          template,
+          styles,
+          clientScript,
+        ),
+      ),
+    ).toEqual({
       kind: 'ok',
       value: {
         counts: { changed: 1, new: 0, deleted: 0, passed: 0 },

@@ -27,7 +27,7 @@
     }
   },
   "scripts": {
-    "build": "git clean -fdX dist && tsc --project tsconfig.build.json",
+    "build": "git clean -fdX dist && tsc --project tsconfig.build.json && cp src/report-template.html src/report-client.js src/report-styles.css src/report-responsive.css dist/",
     "lint": "eslint .",
     "format:eslint": "eslint --fix .",
     "format:prettier": "prettier --write .",

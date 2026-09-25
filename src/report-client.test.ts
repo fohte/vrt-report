@@ -1,9 +1,13 @@
+import { readFileSync } from 'node:fs'
 import { Script } from 'node:vm'
 
 import { Result } from 'neverthrow'
 import { describe, expect, it } from 'vitest'
 
-import { reportClient } from '#report-client'
+const reportClient = readFileSync(
+  new URL('./report-client.js', import.meta.url),
+  'utf8',
+)
 
 const clientScriptSpec = (source: string): { valid: boolean } => {
   const parsed = Result.fromThrowable(
