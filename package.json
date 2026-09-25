@@ -10,17 +10,32 @@
     "registry": "https://registry.npmjs.org/"
   },
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "vrt-report": "./bin/vrt-report.js"
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
   "imports": {
-    "#*": "./src/*.ts"
+    "#*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
   },
   "scripts": {
+    "build": "git clean -fdX dist && tsc --project tsconfig.build.json && cp src/report-template.html src/report-client.js src/report-styles.css src/report-responsive.css dist/",
     "lint": "eslint .",
     "format:eslint": "eslint --fix .",
     "format:prettier": "prettier --write .",
     "format": "conc -m 1 pnpm:format:eslint pnpm:format:prettier",
     "test": "conc pnpm:test:type pnpm:test:unit",
+    "prepack": "pnpm build",
     "test:type": "tsc --noEmit",
-    "test:unit": "vitest run"
+    "test:unit": "pnpm build && vitest run"
   },
   "dependencies": {
     "neverthrow": "8.2.0"

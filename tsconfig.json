@@ -3,10 +3,13 @@
     "@tsconfig/node-lts/tsconfig.json",
     "@tsconfig/strictest/tsconfig.json"
   ],
-  "exclude": ["**/*.cjs"],
+  "exclude": ["**/*.cjs", "dist"],
   "compilerOptions": {
     "module": "preserve",
     "moduleResolution": "bundler",
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "#*": ["./src/*.ts"]
+    }
   }
 }
