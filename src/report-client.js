@@ -172,7 +172,7 @@
     )
     rootButton.dataset.selectionKind = 'all'
     rootButton.dataset.selectionPath = ''
-    rootButton.textContent = 'All changed stories'
+    rootButton.textContent = 'All stories'
     const rootCount = document.createElement('span')
     rootCount.className = 'tree-count'
     rootCount.textContent = String(stories.length)
@@ -287,6 +287,14 @@
   }
 
   function createComparison(variant, story, detail) {
+    if (variant.status === 'unchanged') {
+      const comparison = document.createElement('div')
+      comparison.className = 'comparison'
+      comparison.append(
+        createPane('Current', variant.after, story, variant, detail),
+      )
+      return comparison
+    }
     if (state.view === 'diff') {
       const comparison = document.createElement('div')
       comparison.className = 'comparison'
@@ -364,7 +372,11 @@
     const unchanged = story.variants.filter(
       (variant) => variant.status === 'unchanged',
     )
-    if (unchanged.length > 0) {
+    const initialVariants =
+      changedVariants.length > 0 ? changedVariants : unchanged
+    for (const variant of initialVariants)
+      variants.append(createVariant(variant, story, false))
+    if (changedVariants.length > 0 && unchanged.length > 0) {
       const toggle = document.createElement('button')
       toggle.type = 'button'
       toggle.className = 'show-unchanged'
