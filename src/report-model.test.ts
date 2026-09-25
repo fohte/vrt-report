@@ -10,7 +10,7 @@ const resultSpec = <Value>(result: Result<Value, Error>) =>
   )
 
 describe('buildReportModel', () => {
-  it('counts passed items without creating standalone stories', () => {
+  it('includes stories with only passed items', () => {
     expect(
       resultSpec(
         buildReportModel({
@@ -24,7 +24,22 @@ describe('buildReportModel', () => {
       kind: 'ok',
       value: {
         counts: { changed: 0, new: 0, deleted: 0, passed: 1 },
-        stories: [],
+        stories: [
+          {
+            id: 'ui/example-card.stories.tsx/opens-panel.png',
+            storyId: 'opens-panel',
+            component: 'example-card',
+            sourcePath: 'ui/example-card.stories.tsx',
+            directories: ['ui'],
+            variants: [
+              {
+                name: 'desktop',
+                status: 'unchanged',
+                key: 'desktop/ui/example-card.stories.tsx/opens-panel.png',
+              },
+            ],
+          },
+        ],
       },
     })
   })

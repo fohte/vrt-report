@@ -172,7 +172,7 @@
     )
     rootButton.dataset.selectionKind = 'all'
     rootButton.dataset.selectionPath = ''
-    rootButton.textContent = 'All changed stories'
+    rootButton.textContent = 'All stories'
     const rootCount = document.createElement('span')
     rootCount.className = 'tree-count'
     rootCount.textContent = String(stories.length)
@@ -364,7 +364,10 @@
     const unchanged = story.variants.filter(
       (variant) => variant.status === 'unchanged',
     )
-    if (unchanged.length > 0) {
+    if (unchanged.length > 0 && changedVariants.length === 0) {
+      for (const variant of unchanged)
+        variants.append(createVariant(variant, story, false))
+    } else if (unchanged.length > 0) {
       const toggle = document.createElement('button')
       toggle.type = 'button'
       toggle.className = 'show-unchanged'

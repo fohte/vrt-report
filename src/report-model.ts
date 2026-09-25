@@ -43,6 +43,15 @@ type ImageKey = {
   directories: string[]
 }
 
+const createStory = (imageKey: ImageKey): ReportStory => ({
+  id: imageKey.storyPath,
+  storyId: imageKey.storyId,
+  component: imageKey.component,
+  sourcePath: imageKey.sourcePath,
+  directories: imageKey.directories,
+  variants: [],
+})
+
 class InvalidReportError extends Error {
   constructor(message: string, cause?: unknown) {
     super(message, { cause })
@@ -137,14 +146,7 @@ export const buildReportModel = (
 
       let story = storiesById.get(imageKey.value.storyPath)
       if (story === undefined) {
-        story = {
-          id: imageKey.value.storyPath,
-          storyId: imageKey.value.storyId,
-          component: imageKey.value.component,
-          sourcePath: imageKey.value.sourcePath,
-          directories: imageKey.value.directories,
-          variants: [],
-        }
+        story = createStory(imageKey.value)
         storiesById.set(story.id, story)
       }
 
@@ -164,9 +166,12 @@ export const buildReportModel = (
     const imageKey = parseImageKey(key)
     if (imageKey.isErr()) return err(imageKey.error)
 
-    const story = storiesById.get(imageKey.value.storyPath)
+    let story = storiesById.get(imageKey.value.storyPath)
+    if (story === undefined) {
+      story = createStory(imageKey.value)
+      storiesById.set(story.id, story)
+    }
     if (
-      story === undefined ||
       story.variants.some((variant) => variant.name === imageKey.value.variant)
     ) {
       continue
