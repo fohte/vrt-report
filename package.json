@@ -62,7 +62,7 @@
     "playwright": "1.63.0",
     "prettier": "3.9.8",
     "reg-cli": "0.18.16",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vitest": "4.1.11"
   },
   "version": "0.1.0"
