@@ -63,7 +63,7 @@
     "prettier": "3.9.8",
     "reg-cli": "0.18.16",
     "typescript": "6.0.3",
-    "vitest": "4.1.11"
+    "vitest": "5.0.1"
   },
   "version": "0.1.0"
 }
