@@ -11,6 +11,7 @@ export type ReportVariant = {
 type ReportStory = {
   id: string
   storyId: string
+  displayName?: string
   component: string
   sourcePath: string
   directories: string[]
@@ -71,8 +72,11 @@ class InvalidReportError extends Error {
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
+
+export const isStorybookSourcePath = (path: string): boolean =>
+  /\.stories\.(?:[cm]?[jt]sx?)$/.test(path)
 
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -101,7 +105,7 @@ const parseImageKey = (key: string): Result<ImageKey, Error> => {
   }
 
   const hasStorybookLayout =
-    segments.length >= 3 && /\.stories\.(?:[cm]?[jt]sx?)$/.test(storyFile ?? '')
+    segments.length >= 3 && isStorybookSourcePath(storyFile ?? '')
   const directories = hasStorybookLayout
     ? segments.slice(1, -2)
     : segments.slice(0, -2)
