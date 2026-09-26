@@ -141,6 +141,7 @@ button {
   background: #12171e;
 }
 .search {
+  appearance: none;
   width: 100%;
   margin-bottom: 12px;
   padding: 7px 9px;

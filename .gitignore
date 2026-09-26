@@ -128,3 +128,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# vrt:capture output
+__screenshots__/vrt-report/
+.vrt-report-capture/
