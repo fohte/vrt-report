@@ -130,5 +130,5 @@ dist
 .pnp.*
 
 # vrt:capture output
-__screenshots__/
+__screenshots__/vrt-report/
 .vrt-report-capture/

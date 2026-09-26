@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { createReadStream } from 'node:fs'
-import { copyFile, mkdir, readdir, readFile } from 'node:fs/promises'
+import { copyFile, mkdir } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { extname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -11,11 +11,6 @@ import { chromium } from 'playwright'
 
 const repositoryDirectory = resolve(
   fileURLToPath(new URL('..', import.meta.url)),
-)
-const fixtureDirectory = join(
-  repositoryDirectory,
-  'fixtures',
-  'vrt-report-comparison',
 )
 const workDirectory = join(repositoryDirectory, '.vrt-report-capture')
 const comparisonDirectory = join(workDirectory, 'comparisons')
@@ -28,8 +23,34 @@ const screenshotDirectory = join(
 const cliPath = join(repositoryDirectory, 'bin', 'vrt-report.js')
 const allowedRoots = [workDirectory]
 
-const passedImageKey =
-  'mobile/demos/workflows/reviews/priority/FictionalReviewQueue.stories.tsx/displays-review-routing-summary.png'
+const cases = [
+  [
+    'desktop/demos/workflows/reviews/priority/long-form/FictionalReviewQueue.stories.tsx/displays-a-long-review-routing-summary-with-multiple-approval-stages',
+    '#4a8',
+    '#d97',
+  ],
+  [
+    'mobile/demos/workflows/reviews/priority/long-form/FictionalReviewQueue.stories.tsx/displays-a-long-review-routing-summary-with-multiple-approval-stages',
+    '#4a8',
+    '#4a8',
+  ],
+  [
+    'mobile/demos/workflows/notifications/FictionalNoticePanel.stories.tsx/keeps-follow-up-visible',
+    null,
+    '#48d',
+  ],
+  [
+    'desktop/demos/archive/retired/FictionalArchiveBadge.stories.tsx/shows-retired-state',
+    '#999',
+    null,
+  ],
+]
+
+const screenshotOptions = {
+  animations: 'disabled',
+  caret: 'hide',
+  scale: 'css',
+}
 
 const reportCaptures = [
   {
@@ -87,72 +108,90 @@ const resetGeneratedOutput = () => {
   return ok(undefined)
 }
 
-const listHtmlFiles = async (directory) => {
-  const entries = (await readdir(directory, { withFileTypes: true })).toSorted(
-    (left, right) => left.name.localeCompare(right.name),
-  )
-  const files = []
-
-  for (const entry of entries) {
-    const path = join(directory, entry.name)
-    if (entry.isDirectory()) files.push(...(await listHtmlFiles(path)))
-    else if (entry.isFile() && extname(entry.name) === '.html') files.push(path)
-  }
-
-  return files
-}
-
-const captureHtmlDirectory = async (browser, side) => {
-  const sourceDirectory = join(fixtureDirectory, side)
-  const outputDirectory = join(comparisonDirectory, 'mixed', side)
-  const context = await browser.newContext({
+const createCaptureContext = (browser, viewport) =>
+  browser.newContext({
     colorScheme: 'dark',
     deviceScaleFactor: 1,
     locale: 'en-US',
     reducedMotion: 'reduce',
     timezoneId: 'UTC',
-    viewport: { width: 1440, height: 960 },
+    viewport,
   })
 
-  for (const sourcePath of await listHtmlFiles(sourceDirectory)) {
-    const relativePath = relative(sourceDirectory, sourcePath)
-    const outputPath = join(
-      outputDirectory,
-      relativePath.replace(/\.html$/, '.png'),
-    )
-    const viewport = relativePath.startsWith(`mobile${sep}`)
-      ? { width: 390, height: 844 }
-      : { width: 1440, height: 960 }
-    const page = await context.newPage()
+const waitForPageAssets = async (page) => {
+  await page.evaluate(async () => {
+    for (const image of document.images) image.loading = 'eager'
+    await document.fonts.ready
+    await Promise.all(Array.from(document.images, (image) => image.decode()))
+  })
+}
 
-    await mkdir(resolve(outputPath, '..'), { recursive: true })
-    await page.setViewportSize(viewport)
-    await page.setContent(await readFile(sourcePath, 'utf8'))
-    await page.evaluate(async () => {
-      for (const image of document.images) image.loading = 'eager'
-      await document.fonts.ready
-      await Promise.all(Array.from(document.images, (image) => image.decode()))
-    })
-    await page.mouse.move(0, 0)
-    await page.evaluate(
-      () => new Promise((resolveFrame) => requestAnimationFrame(resolveFrame)),
-    )
-    await page.screenshot({
-      path: outputPath,
-      animations: 'disabled',
-      caret: 'hide',
-      scale: 'css',
-    })
-    await page.close()
+const settlePage = async (page) => {
+  await page.mouse.move(0, 0)
+  await page.evaluate(
+    () => new Promise((resolveFrame) => requestAnimationFrame(resolveFrame)),
+  )
+}
+
+const stabilizePage = async (page) => {
+  await waitForPageAssets(page)
+  await settlePage(page)
+}
+
+const captureScreenshot = (page, path, fullPage = false) =>
+  page.screenshot({ path, fullPage, ...screenshotOptions })
+
+const createColorPage = (color) => `
+  <!doctype html>
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <style>
+        html,
+        body,
+        #swatch {
+          width: 100%;
+          height: 100%;
+          margin: 0;
+        }
+        #swatch {
+          background: ${color};
+        }
+      </style>
+    </head>
+    <body><div id="swatch"></div></body>
+  </html>
+`
+
+const captureComparisonCases = async (browser, mixed) => {
+  for (const [imageKey, expectedColor, actualColor] of cases) {
+    for (const [side, color] of [
+      ['expected', expectedColor],
+      ['actual', actualColor],
+    ]) {
+      if (color === null) continue
+
+      const viewport = imageKey.startsWith('mobile/')
+        ? { width: 390, height: 844 }
+        : { width: 1440, height: 960 }
+      const context = await createCaptureContext(browser, viewport)
+      const page = await context.newPage()
+      const outputPath = join(mixed[side], ...imageKey.split('/')) + '.png'
+
+      await mkdir(resolve(outputPath, '..'), { recursive: true })
+      await page.setContent(createColorPage(color))
+      await stabilizePage(page)
+      await captureScreenshot(page, outputPath)
+      await page.close()
+      await context.close()
+    }
   }
-
-  await context.close()
-  return ok(undefined)
 }
 
 const createComparisonDirectories = async (name) => {
   const directory = join(comparisonDirectory, name)
   const directories = {
+    name,
     root: directory,
     actual: join(directory, 'actual'),
     expected: join(directory, 'expected'),
@@ -169,19 +208,25 @@ const createComparisonDirectories = async (name) => {
   return directories
 }
 
-const createPassedOnlyComparison = async () => {
-  const mixed = join(comparisonDirectory, 'mixed')
+const createPassedOnlyComparison = async (mixed) => {
+  const passedImageKey = cases.find(
+    ([, expectedColor, actualColor]) =>
+      expectedColor !== null && expectedColor === actualColor,
+  )?.[0]
+  if (passedImageKey === undefined)
+    return err(new Error('A passed comparison case is required.'))
+
   const passedOnly = await createComparisonDirectories('passed-only')
-  const pathSegments = passedImageKey.split('/')
+  const pathSegments = `${passedImageKey}.png`.split('/')
 
   for (const side of ['actual', 'expected']) {
-    const sourcePath = join(mixed, side, ...pathSegments)
+    const sourcePath = join(mixed[side], ...pathSegments)
     const outputPath = join(passedOnly[side], ...pathSegments)
     await mkdir(resolve(outputPath, '..'), { recursive: true })
     await copyFile(sourcePath, outputPath)
   }
 
-  return passedOnly
+  return ok(passedOnly)
 }
 
 const runRegCli = async ({ root, actual, expected, diff, json }) => {
@@ -262,21 +307,21 @@ const runReportCli = async (name) => {
   return ok(undefined)
 }
 
-const generateReports = async () => {
+const generateReports = async (browser) => {
   const mixed = await createComparisonDirectories('mixed')
-  for (const side of ['expected', 'actual']) {
-    const result = await captureHtmlDirectory(resources.browser, side)
-    if (result.isErr()) return result
-  }
+  await captureComparisonCases(browser, mixed)
 
-  const passedOnly = await createPassedOnlyComparison()
+  const passedOnlyResult = await createPassedOnlyComparison(mixed)
+  if (passedOnlyResult.isErr()) return passedOnlyResult
+  const passedOnly = passedOnlyResult.value
   const empty = await createComparisonDirectories('empty')
-  for (const comparison of [mixed, passedOnly, empty]) {
+  const comparisons = [mixed, passedOnly, empty]
+  for (const comparison of comparisons) {
     const result = await runRegCli(comparison)
     if (result.isErr()) return result
   }
 
-  for (const name of ['mixed', 'passed-only', 'empty']) {
+  for (const { name } of comparisons) {
     const result = await runReportCli(name)
     if (result.isErr()) return result
   }
@@ -302,7 +347,6 @@ const createStaticServer = () =>
     const contentType = {
       '.html': 'text/html; charset=utf-8',
       '.png': 'image/png',
-      '.webp': 'image/webp',
     }[extname(filePath)]
     if (contentType !== undefined)
       response.setHeader('Content-Type', contentType)
@@ -334,14 +378,7 @@ const captureReport = async (browser, baseUrl, entry) => {
       join(reportDirectory, entry.report, 'report.html'),
     ),
   )
-  const context = await browser.newContext({
-    colorScheme: 'dark',
-    deviceScaleFactor: 1,
-    locale: 'en-US',
-    reducedMotion: 'reduce',
-    timezoneId: 'UTC',
-    viewport: entry.viewport,
-  })
+  const context = await createCaptureContext(browser, entry.viewport)
   await context.route('**/*', (route) =>
     new URL(route.request().url()).origin === baseUrl
       ? route.continue()
@@ -352,25 +389,12 @@ const captureReport = async (browser, baseUrl, entry) => {
   await page.goto(`${baseUrl}/${reportPath}`, { waitUntil: 'networkidle' })
   if (entry.showUnchanged) await page.locator('.show-unchanged').click()
 
-  await page.evaluate(async () => {
-    for (const image of document.images) image.loading = 'eager'
-    await document.fonts.ready
-    await Promise.all(Array.from(document.images, (image) => image.decode()))
-  })
+  await waitForPageAssets(page)
   await page.evaluate(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
   })
-  await page.mouse.move(0, 0)
-  await page.evaluate(
-    () => new Promise((resolveFrame) => requestAnimationFrame(resolveFrame)),
-  )
-  await page.screenshot({
-    path: join(screenshotDirectory, entry.filename),
-    fullPage: true,
-    animations: 'disabled',
-    caret: 'hide',
-    scale: 'css',
-  })
+  await settlePage(page)
+  await captureScreenshot(page, join(screenshotDirectory, entry.filename), true)
 
   await context.close()
   process.stdout.write(
@@ -396,7 +420,7 @@ const capture = async () => {
 
   await mkdir(screenshotDirectory, { recursive: true })
   resources.browser = await chromium.launch({ headless: true })
-  const generated = await generateReports()
+  const generated = await generateReports(resources.browser)
   if (generated.isErr()) return generated
 
   const server = await startStaticServer()
