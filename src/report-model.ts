@@ -11,6 +11,7 @@ export type ReportVariant = {
 type ReportStory = {
   id: string
   storyId: string
+  displayName?: string
   component: string
   sourcePath: string
   directories: string[]
@@ -43,6 +44,27 @@ type ImageKey = {
   directories: string[]
 }
 
+const createStory = (imageKey: ImageKey): ReportStory => ({
+  id: imageKey.storyPath,
+  storyId: imageKey.storyId,
+  component: imageKey.component,
+  sourcePath: imageKey.sourcePath,
+  directories: imageKey.directories,
+  variants: [],
+})
+
+const getOrCreateStory = (
+  storiesById: Map<string, ReportStory>,
+  imageKey: ImageKey,
+): ReportStory => {
+  const existing = storiesById.get(imageKey.storyPath)
+  if (existing !== undefined) return existing
+
+  const story = createStory(imageKey)
+  storiesById.set(story.id, story)
+  return story
+}
+
 class InvalidReportError extends Error {
   constructor(message: string, cause?: unknown) {
     super(message, { cause })
@@ -50,8 +72,11 @@ class InvalidReportError extends Error {
   }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
+
+export const isStorybookSourcePath = (path: string): boolean =>
+  /\.stories\.(?:[cm]?[jt]sx?)$/.test(path)
 
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -80,7 +105,7 @@ const parseImageKey = (key: string): Result<ImageKey, Error> => {
   }
 
   const hasStorybookLayout =
-    segments.length >= 3 && /\.stories\.(?:[cm]?[jt]sx?)$/.test(storyFile ?? '')
+    segments.length >= 3 && isStorybookSourcePath(storyFile ?? '')
   const directories = hasStorybookLayout
     ? segments.slice(1, -2)
     : segments.slice(0, -2)
@@ -135,18 +160,7 @@ export const buildReportModel = (
       const imageKey = parseImageKey(key)
       if (imageKey.isErr()) return err(imageKey.error)
 
-      let story = storiesById.get(imageKey.value.storyPath)
-      if (story === undefined) {
-        story = {
-          id: imageKey.value.storyPath,
-          storyId: imageKey.value.storyId,
-          component: imageKey.value.component,
-          sourcePath: imageKey.value.sourcePath,
-          directories: imageKey.value.directories,
-          variants: [],
-        }
-        storiesById.set(story.id, story)
-      }
+      const story = getOrCreateStory(storiesById, imageKey.value)
 
       if (
         story.variants.some(
@@ -164,9 +178,8 @@ export const buildReportModel = (
     const imageKey = parseImageKey(key)
     if (imageKey.isErr()) return err(imageKey.error)
 
-    const story = storiesById.get(imageKey.value.storyPath)
+    const story = getOrCreateStory(storiesById, imageKey.value)
     if (
-      story === undefined ||
       story.variants.some((variant) => variant.name === imageKey.value.variant)
     ) {
       continue
