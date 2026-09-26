@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { createReadStream } from 'node:fs'
-import { mkdir } from 'node:fs/promises'
+import { copyFile, mkdir, readdir, readFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { extname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -15,37 +15,42 @@ const repositoryDirectory = resolve(
 const fixtureDirectory = join(
   repositoryDirectory,
   'fixtures',
-  'self-vrt-capture',
+  'vrt-report-comparison',
 )
-const reportDirectory = join(repositoryDirectory, '.vrt-report-capture')
+const workDirectory = join(repositoryDirectory, '.vrt-report-capture')
+const comparisonDirectory = join(workDirectory, 'comparisons')
+const reportDirectory = join(workDirectory, 'reports')
 const screenshotDirectory = join(
   repositoryDirectory,
   '__screenshots__',
   'vrt-report',
 )
 const cliPath = join(repositoryDirectory, 'bin', 'vrt-report.js')
-const allowedRoots = [reportDirectory, fixtureDirectory]
+const allowedRoots = [workDirectory]
 
-const captureEntries = [
+const passedImageKey =
+  'mobile/demos/workflows/reviews/priority/FictionalReviewQueue.stories.tsx/displays-review-routing-summary.png'
+
+const reportCaptures = [
   {
-    fixture: 'mixed',
+    report: 'mixed',
     filename: 'mixed-desktop.png',
     viewport: { width: 1440, height: 960 },
     showUnchanged: true,
   },
   {
-    fixture: 'mixed',
+    report: 'mixed',
     filename: 'mixed-mobile.png',
     viewport: { width: 390, height: 844 },
     showUnchanged: true,
   },
   {
-    fixture: 'passed-only',
+    report: 'passed-only',
     filename: 'unchanged-only.png',
     viewport: { width: 1440, height: 960 },
   },
   {
-    fixture: 'empty',
+    report: 'empty',
     filename: 'empty.png',
     viewport: { width: 1440, height: 960 },
   },
@@ -55,13 +60,171 @@ const resources = { browser: undefined, server: undefined }
 
 const toPosixPath = (path) => path.split(sep).join('/')
 
-const runReportCli = async (fixture) => {
-  const scenarioDirectory = join(fixtureDirectory, fixture)
-  const outputDirectory = join(reportDirectory, fixture)
+const resetGeneratedOutput = () => {
+  const result = spawnSync(
+    'git',
+    [
+      'clean',
+      '-fdX',
+      '--',
+      '.vrt-report-capture',
+      '__screenshots__/vrt-report',
+    ],
+    { cwd: repositoryDirectory, encoding: 'utf8' },
+  )
+
+  if (result.error !== undefined)
+    return err(
+      new Error('Could not clear previous capture output.', {
+        cause: result.error,
+      }),
+    )
+  if (result.status !== 0)
+    return err(
+      new Error(result.stderr || 'Could not clear previous capture output.'),
+    )
+
+  return ok(undefined)
+}
+
+const listHtmlFiles = async (directory) => {
+  const entries = (await readdir(directory, { withFileTypes: true })).toSorted(
+    (left, right) => left.name.localeCompare(right.name),
+  )
+  const files = []
+
+  for (const entry of entries) {
+    const path = join(directory, entry.name)
+    if (entry.isDirectory()) files.push(...(await listHtmlFiles(path)))
+    else if (entry.isFile() && extname(entry.name) === '.html') files.push(path)
+  }
+
+  return files
+}
+
+const captureHtmlDirectory = async (browser, side) => {
+  const sourceDirectory = join(fixtureDirectory, side)
+  const outputDirectory = join(comparisonDirectory, 'mixed', side)
+  const context = await browser.newContext({
+    colorScheme: 'dark',
+    deviceScaleFactor: 1,
+    locale: 'en-US',
+    reducedMotion: 'reduce',
+    timezoneId: 'UTC',
+    viewport: { width: 1440, height: 960 },
+  })
+
+  for (const sourcePath of await listHtmlFiles(sourceDirectory)) {
+    const relativePath = relative(sourceDirectory, sourcePath)
+    const outputPath = join(
+      outputDirectory,
+      relativePath.replace(/\.html$/, '.png'),
+    )
+    const viewport = relativePath.startsWith(`mobile${sep}`)
+      ? { width: 390, height: 844 }
+      : { width: 1440, height: 960 }
+    const page = await context.newPage()
+
+    await mkdir(resolve(outputPath, '..'), { recursive: true })
+    await page.setViewportSize(viewport)
+    await page.setContent(await readFile(sourcePath, 'utf8'))
+    await page.evaluate(async () => {
+      for (const image of document.images) image.loading = 'eager'
+      await document.fonts.ready
+      await Promise.all(Array.from(document.images, (image) => image.decode()))
+    })
+    await page.mouse.move(0, 0)
+    await page.evaluate(
+      () => new Promise((resolveFrame) => requestAnimationFrame(resolveFrame)),
+    )
+    await page.screenshot({
+      path: outputPath,
+      animations: 'disabled',
+      caret: 'hide',
+      scale: 'css',
+    })
+    await page.close()
+  }
+
+  await context.close()
+  return ok(undefined)
+}
+
+const createComparisonDirectories = async (name) => {
+  const directory = join(comparisonDirectory, name)
+  const directories = {
+    root: directory,
+    actual: join(directory, 'actual'),
+    expected: join(directory, 'expected'),
+    diff: join(directory, 'diff'),
+    json: join(directory, 'out.json'),
+  }
+
+  await Promise.all(
+    [directories.actual, directories.expected, directories.diff].map((path) =>
+      mkdir(path, { recursive: true }),
+    ),
+  )
+
+  return directories
+}
+
+const createPassedOnlyComparison = async () => {
+  const mixed = join(comparisonDirectory, 'mixed')
+  const passedOnly = await createComparisonDirectories('passed-only')
+  const pathSegments = passedImageKey.split('/')
+
+  for (const side of ['actual', 'expected']) {
+    const sourcePath = join(mixed, side, ...pathSegments)
+    const outputPath = join(passedOnly[side], ...pathSegments)
+    await mkdir(resolve(outputPath, '..'), { recursive: true })
+    await copyFile(sourcePath, outputPath)
+  }
+
+  return passedOnly
+}
+
+const runRegCli = async ({ root, actual, expected, diff, json }) => {
+  const result = spawnSync(
+    'reg-cli',
+    [
+      actual,
+      expected,
+      diff,
+      '--json',
+      json,
+      '--matchingThreshold',
+      '0.01',
+      '--enableAntialias',
+      '--thresholdPixel',
+      '10',
+      '--diffFormat',
+      'png',
+      '--ignoreChange',
+    ],
+    { cwd: repositoryDirectory, encoding: 'utf8' },
+  )
+
+  if (result.error !== undefined)
+    return err(new Error(`Could not compare ${root}.`, { cause: result.error }))
+  if (result.status !== 0)
+    return err(
+      new Error(
+        result.stderr || `reg-cli exited with status ${result.status}.`,
+      ),
+    )
+
+  process.stdout.write(result.stdout)
+  return ok(undefined)
+}
+
+const runReportCli = async (name) => {
+  const scenarioDirectory = join(comparisonDirectory, name)
+  const outputDirectory = join(reportDirectory, name)
   const outputPath = join(outputDirectory, 'report.html')
-  const assetsDirectory = join(scenarioDirectory, 'assets')
-  const baselineDirectory = join(scenarioDirectory, 'baseline', 'actual')
-  const baselineUrl = toPosixPath(relative(outputDirectory, baselineDirectory))
+  const baselineUrl = toPosixPath(
+    relative(outputDirectory, join(scenarioDirectory, 'expected')),
+  )
 
   await mkdir(outputDirectory, { recursive: true })
 
@@ -72,7 +235,7 @@ const runReportCli = async (fixture) => {
       '--input',
       join(scenarioDirectory, 'out.json'),
       '--assets-dir',
-      assetsDirectory,
+      scenarioDirectory,
       '--output',
       outputPath,
       '--baseline-dir',
@@ -83,7 +246,7 @@ const runReportCli = async (fixture) => {
 
   if (result.error !== undefined)
     return err(
-      new Error(`Could not generate the ${fixture} report.`, {
+      new Error(`Could not generate the ${name} report.`, {
         cause: result.error,
       }),
     )
@@ -100,11 +263,24 @@ const runReportCli = async (fixture) => {
 }
 
 const generateReports = async () => {
-  const fixtures = new Set(captureEntries.map(({ fixture }) => fixture))
-  for (const fixture of fixtures) {
-    const result = await runReportCli(fixture)
+  const mixed = await createComparisonDirectories('mixed')
+  for (const side of ['expected', 'actual']) {
+    const result = await captureHtmlDirectory(resources.browser, side)
     if (result.isErr()) return result
   }
+
+  const passedOnly = await createPassedOnlyComparison()
+  const empty = await createComparisonDirectories('empty')
+  for (const comparison of [mixed, passedOnly, empty]) {
+    const result = await runRegCli(comparison)
+    if (result.isErr()) return result
+  }
+
+  for (const name of ['mixed', 'passed-only', 'empty']) {
+    const result = await runReportCli(name)
+    if (result.isErr()) return result
+  }
+
   return ok(undefined)
 }
 
@@ -125,7 +301,8 @@ const createStaticServer = () =>
 
     const contentType = {
       '.html': 'text/html; charset=utf-8',
-      '.svg': 'image/svg+xml',
+      '.png': 'image/png',
+      '.webp': 'image/webp',
     }[extname(filePath)]
     if (contentType !== undefined)
       response.setHeader('Content-Type', contentType)
@@ -154,7 +331,7 @@ const captureReport = async (browser, baseUrl, entry) => {
   const reportPath = toPosixPath(
     relative(
       repositoryDirectory,
-      join(reportDirectory, entry.fixture, 'report.html'),
+      join(reportDirectory, entry.report, 'report.html'),
     ),
   )
   const context = await browser.newContext({
@@ -214,15 +391,18 @@ const closeResources = async () => {
 }
 
 const capture = async () => {
+  const reset = resetGeneratedOutput()
+  if (reset.isErr()) return reset
+
+  await mkdir(screenshotDirectory, { recursive: true })
+  resources.browser = await chromium.launch({ headless: true })
   const generated = await generateReports()
   if (generated.isErr()) return generated
 
-  await mkdir(screenshotDirectory, { recursive: true })
   const server = await startStaticServer()
   if (server.isErr()) return server
 
-  resources.browser = await chromium.launch({ headless: true })
-  for (const entry of captureEntries)
+  for (const entry of reportCaptures)
     await captureReport(resources.browser, server.value, entry)
 
   return ok(undefined)

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Review routing summary</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Arial, sans-serif;
+        color: #e8eef4;
+        background: #101820;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 30px;
+      }
+      main {
+        width: min(100%, 960px);
+        min-height: calc(100vh - 60px);
+        margin: auto;
+        padding: 28px;
+        border: 1px solid #354653;
+        border-radius: 18px;
+        background: #182631;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        align-items: start;
+      }
+      h1 {
+        margin: 4px 0 8px;
+        font-size: 28px;
+      }
+      p {
+        color: #b9c7d1;
+        line-height: 1.55;
+      }
+      .eyebrow,
+      .badge {
+        color: #9eb8c8;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .badge {
+        padding: 8px 11px;
+        border: 1px solid #b7794e;
+        border-radius: 999px;
+        color: #ffc49a;
+        white-space: nowrap;
+      }
+      .summary {
+        max-width: 760px;
+        margin: 22px 0;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      section {
+        padding: 18px;
+        border: 1px solid #354653;
+        border-radius: 12px;
+        background: #1d303c;
+      }
+      h2 {
+        margin: 0 0 10px;
+        font-size: 15px;
+      }
+      .reviewer {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-top: 1px solid #354653;
+        color: #d5e0e7;
+      }
+      .muted {
+        color: #91a4b1;
+      }
+      .progress {
+        height: 8px;
+        margin-top: 12px;
+        border-radius: 8px;
+        background: #304754;
+      }
+      .progress span {
+        display: block;
+        width: 50%;
+        height: 100%;
+        border-radius: inherit;
+        background: #d09a70;
+      }
+      @media (max-width: 600px) {
+        body {
+          padding: 14px;
+        }
+        main {
+          min-height: calc(100vh - 28px);
+          padding: 18px;
+        }
+        header {
+          display: block;
+        }
+        .badge {
+          display: inline-block;
+          margin-top: 8px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 23px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <div class="eyebrow">Fictional workflow / priority review</div>
+          <h1>Review routing summary</h1>
+        </div>
+        <div class="badge">2 of 4 approvals</div>
+      </header>
+      <p class="summary">
+        The release summary is ready for review. Each assigned reviewer checks a
+        different part of the proposal, and the routing stays visible while the
+        team resolves open questions. The final approval becomes available after
+        every required reviewer has recorded a decision and the additional
+        accessibility review is complete. Notes stay attached to the decision
+        they explain, so later reviewers can understand what changed without
+        reopening the whole discussion. If an owner is unavailable, the queue
+        keeps the request in its original position while a backup reviewer is
+        assigned. This keeps the handoff visible to every participant.
+      </p>
+      <div class="grid">
+        <section>
+          <h2>Assigned reviewers</h2>
+          <div class="reviewer">
+            <span>Design review</span><span class="muted">Complete</span>
+          </div>
+          <div class="reviewer">
+            <span>Safety review</span><span class="muted">Complete</span>
+          </div>
+          <div class="reviewer">
+            <span>Operations review</span><span class="muted">Waiting</span>
+          </div>
+          <div class="reviewer">
+            <span>Accessibility review</span><span class="muted">Waiting</span>
+          </div>
+          <div class="progress"><span></span></div>
+        </section>
+        <section>
+          <h2>Open question</h2>
+          <p>
+            Confirm that the scheduled handoff includes a fallback owner and a
+            clear rollback window.
+          </p>
+          <div class="reviewer">
+            <span>Next action</span><span class="muted">Add a note</span>
+          </div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>
