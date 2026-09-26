@@ -368,8 +368,6 @@
     const changedVariants = story.variants.filter(
       (variant) => variant.status !== 'unchanged',
     )
-    for (const variant of changedVariants)
-      variants.append(createVariant(variant, story, false))
     article.append(head, variants)
     const unchanged = story.variants.filter(
       (variant) => variant.status === 'unchanged',
