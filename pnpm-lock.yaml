@@ -3114,6 +3114,7 @@ snapshots:
     dependencies:
       '@emnapi/wasi-threads': 1.2.2
       tslib: 2.8.1
+    optional: true
 
   '@emnapi/core@1.11.2':
     dependencies:
@@ -3125,6 +3126,7 @@ snapshots:
     dependencies:
       '@emnapi/wasi-threads': 1.2.1
       tslib: 2.8.1
+    optional: true
 
   '@emnapi/runtime@1.10.0':
     dependencies:
@@ -3134,6 +3136,7 @@ snapshots:
   '@emnapi/runtime@1.11.0':
     dependencies:
       tslib: 2.8.1
+    optional: true
 
   '@emnapi/runtime@1.11.2':
     dependencies:
@@ -3143,6 +3146,7 @@ snapshots:
   '@emnapi/runtime@1.9.2':
     dependencies:
       tslib: 2.8.1
+    optional: true
 
   '@emnapi/wasi-threads@1.2.1':
     dependencies:
@@ -3337,6 +3341,7 @@ snapshots:
       '@emnapi/core': 1.11.0
       '@emnapi/runtime': 1.11.0
       '@tybys/wasm-util': 0.10.4
+    optional: true
 
   '@napi-rs/wasm-runtime@1.2.4(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)':
     dependencies:
@@ -3350,6 +3355,7 @@ snapshots:
       '@emnapi/core': 1.9.2
       '@emnapi/runtime': 1.9.2
       '@tybys/wasm-util': 0.10.4
+    optional: true
 
   '@ninoseki/eslint-plugin-neverthrow@0.3.1(@typescript-eslint/parser@8.70.0(eslint@10.10.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@10.10.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)':
     dependencies:
@@ -3389,82 +3395,98 @@ snapshots:
 
   '@oozcitak/util@10.0.0': {}
 
-  '@oxc-parser/binding-android-arm-eabi@0.127.0': {}
+  '@oxc-parser/binding-android-arm-eabi@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-android-arm-eabi@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-android-arm64@0.127.0': {}
+  '@oxc-parser/binding-android-arm64@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-android-arm64@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-darwin-arm64@0.127.0': {}
+  '@oxc-parser/binding-darwin-arm64@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-darwin-arm64@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-darwin-x64@0.127.0': {}
+  '@oxc-parser/binding-darwin-x64@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-darwin-x64@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-freebsd-x64@0.127.0': {}
+  '@oxc-parser/binding-freebsd-x64@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-freebsd-x64@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-linux-arm-gnueabihf@0.127.0': {}
+  '@oxc-parser/binding-linux-arm-gnueabihf@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-linux-arm-gnueabihf@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-linux-arm-musleabihf@0.127.0': {}
+  '@oxc-parser/binding-linux-arm-musleabihf@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-linux-arm-musleabihf@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-linux-arm64-gnu@0.127.0': {}
+  '@oxc-parser/binding-linux-arm64-gnu@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-linux-arm64-gnu@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-linux-arm64-musl@0.127.0': {}
+  '@oxc-parser/binding-linux-arm64-musl@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-linux-arm64-musl@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-linux-ppc64-gnu@0.127.0': {}
+  '@oxc-parser/binding-linux-ppc64-gnu@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-linux-ppc64-gnu@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-linux-riscv64-gnu@0.127.0': {}
+  '@oxc-parser/binding-linux-riscv64-gnu@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-linux-riscv64-gnu@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-linux-riscv64-musl@0.127.0': {}
+  '@oxc-parser/binding-linux-riscv64-musl@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-linux-riscv64-musl@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-linux-s390x-gnu@0.127.0': {}
+  '@oxc-parser/binding-linux-s390x-gnu@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-linux-s390x-gnu@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-linux-x64-gnu@0.127.0': {}
+  '@oxc-parser/binding-linux-x64-gnu@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-linux-x64-gnu@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-linux-x64-musl@0.127.0': {}
+  '@oxc-parser/binding-linux-x64-musl@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-linux-x64-musl@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-openharmony-arm64@0.127.0': {}
+  '@oxc-parser/binding-openharmony-arm64@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-openharmony-arm64@0.148.0':
     optional: true
@@ -3474,18 +3496,22 @@ snapshots:
       '@emnapi/core': 1.9.2
       '@emnapi/runtime': 1.9.2
       '@napi-rs/wasm-runtime': 1.2.4(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)
+    optional: true
 
-  '@oxc-parser/binding-win32-arm64-msvc@0.127.0': {}
+  '@oxc-parser/binding-win32-arm64-msvc@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-win32-arm64-msvc@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-win32-ia32-msvc@0.127.0': {}
+  '@oxc-parser/binding-win32-ia32-msvc@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-win32-ia32-msvc@0.148.0':
     optional: true
 
-  '@oxc-parser/binding-win32-x64-msvc@0.127.0': {}
+  '@oxc-parser/binding-win32-x64-msvc@0.127.0':
+    optional: true
 
   '@oxc-parser/binding-win32-x64-msvc@0.148.0':
     optional: true
@@ -3496,82 +3522,98 @@ snapshots:
 
   '@oxc-project/types@0.150.0': {}
 
-  '@oxc-resolver/binding-android-arm-eabi@11.21.2': {}
+  '@oxc-resolver/binding-android-arm-eabi@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-android-arm-eabi@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-android-arm64@11.21.2': {}
+  '@oxc-resolver/binding-android-arm64@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-android-arm64@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-darwin-arm64@11.21.2': {}
+  '@oxc-resolver/binding-darwin-arm64@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-darwin-arm64@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-darwin-x64@11.21.2': {}
+  '@oxc-resolver/binding-darwin-x64@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-darwin-x64@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-freebsd-x64@11.21.2': {}
+  '@oxc-resolver/binding-freebsd-x64@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-freebsd-x64@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-linux-arm-gnueabihf@11.21.2': {}
+  '@oxc-resolver/binding-linux-arm-gnueabihf@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-linux-arm-gnueabihf@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-linux-arm-musleabihf@11.21.2': {}
+  '@oxc-resolver/binding-linux-arm-musleabihf@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-linux-arm-musleabihf@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-linux-arm64-gnu@11.21.2': {}
+  '@oxc-resolver/binding-linux-arm64-gnu@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-linux-arm64-gnu@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-linux-arm64-musl@11.21.2': {}
+  '@oxc-resolver/binding-linux-arm64-musl@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-linux-arm64-musl@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-linux-ppc64-gnu@11.21.2': {}
+  '@oxc-resolver/binding-linux-ppc64-gnu@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-linux-ppc64-gnu@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-linux-riscv64-gnu@11.21.2': {}
+  '@oxc-resolver/binding-linux-riscv64-gnu@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-linux-riscv64-gnu@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-linux-riscv64-musl@11.21.2': {}
+  '@oxc-resolver/binding-linux-riscv64-musl@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-linux-riscv64-musl@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-linux-s390x-gnu@11.21.2': {}
+  '@oxc-resolver/binding-linux-s390x-gnu@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-linux-s390x-gnu@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-linux-x64-gnu@11.21.2': {}
+  '@oxc-resolver/binding-linux-x64-gnu@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-linux-x64-gnu@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-linux-x64-musl@11.21.2': {}
+  '@oxc-resolver/binding-linux-x64-musl@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-linux-x64-musl@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-openharmony-arm64@11.21.2': {}
+  '@oxc-resolver/binding-openharmony-arm64@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-openharmony-arm64@11.24.2':
     optional: true
@@ -3581,6 +3623,7 @@ snapshots:
       '@emnapi/core': 1.11.0
       '@emnapi/runtime': 1.11.0
       '@napi-rs/wasm-runtime': 1.2.4(@emnapi/core@1.11.0)(@emnapi/runtime@1.11.0)
+    optional: true
 
   '@oxc-resolver/binding-wasm32-wasi@11.24.2':
     dependencies:
@@ -3589,12 +3632,14 @@ snapshots:
       '@napi-rs/wasm-runtime': 1.2.4(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)
     optional: true
 
-  '@oxc-resolver/binding-win32-arm64-msvc@11.21.2': {}
+  '@oxc-resolver/binding-win32-arm64-msvc@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-win32-arm64-msvc@11.24.2':
     optional: true
 
-  '@oxc-resolver/binding-win32-x64-msvc@11.21.2': {}
+  '@oxc-resolver/binding-win32-x64-msvc@11.21.2':
+    optional: true
 
   '@oxc-resolver/binding-win32-x64-msvc@11.24.2':
     optional: true
