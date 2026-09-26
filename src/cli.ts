@@ -5,7 +5,7 @@ import { DEFAULT_BASELINE_DIR } from '#render'
 
 type ParsedArgs = { kind: 'help' } | { kind: 'run'; options: GenerateOptions }
 
-const usage = `Usage: vrt-report --input <out.json> --assets-dir <directory> --output <report.html> [--stories-dir <directory>] [--baseline-dir <relative-path>]
+const usage = `Usage: vrt-report --input <out.json> --assets-dir <directory> --output <report.html> [--stories-dir <directory>] [--baseline-dir <relative-path-or-url>]
 
 Generate a standalone HTML report from reg-cli output.
 
@@ -14,7 +14,7 @@ Options:
   --assets-dir    Directory containing actual/ and diff/
   --output        Path to the generated HTML file
   --stories-dir   Storybook project root (requires Storybook >=9; default: current directory)
-  --baseline-dir  Relative URL to baseline/actual (default: ${DEFAULT_BASELINE_DIR})
+  --baseline-dir  Relative path or absolute URL to baseline/actual (default: ${DEFAULT_BASELINE_DIR})
   -h, --help      Show this help
 `
 

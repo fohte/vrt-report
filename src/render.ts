@@ -31,6 +31,9 @@ const encodePath = (value: string): string =>
     )
     .join('/')
 
+const isAbsoluteUrl = (value: string): boolean =>
+  /^[a-z][a-z\d+.-]*:\/\//i.test(value)
+
 const imageUrl = (prefix: string, folder: string, key: string): string =>
   [prefix, folder, encodePath(key)]
     .filter((segment) => segment.length > 0)
@@ -44,9 +47,10 @@ export const renderReport = (
   clientScript: string,
 ): string => {
   const assetsPrefix = encodePath(options.assetsPrefix)
-  const baselineDirectory = encodePath(
-    options.baselineDirectory ?? DEFAULT_BASELINE_DIR,
-  )
+  const baselineLocation = options.baselineDirectory ?? DEFAULT_BASELINE_DIR
+  const baselineDirectory = isAbsoluteUrl(baselineLocation)
+    ? baselineLocation.replace(/\/+$/, '')
+    : encodePath(baselineLocation)
   const stories = model.stories.map((story) => ({
     ...story,
     variants: story.variants.map(({ key, ...variant }) => {
