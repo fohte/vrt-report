@@ -61,7 +61,7 @@
     "knip": "6.36.0",
     "playwright": "1.63.0",
     "prettier": "3.9.8",
-    "reg-cli": "0.19.0-rc3",
+    "reg-cli": "0.18.16",
     "typescript": "6.0.3",
     "vitest": "4.1.11"
   },
