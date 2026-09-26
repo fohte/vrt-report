@@ -61,7 +61,7 @@
     "knip": "6.37.0",
     "playwright": "1.63.0",
     "prettier": "3.9.8",
-    "reg-cli": "0.19.0-rc3",
+    "reg-cli": "0.18.16",
     "reg-publish-s3-plugin": "0.14.4",
     "reg-simple-keygen-plugin": "0.14.2",
     "reg-suit": "0.14.5",

@@ -207,8 +207,8 @@ importers:
         specifier: 3.9.8
         version: 3.9.8
       reg-cli:
-        specifier: 0.19.0-rc3
-        version: 0.19.0-rc3
+        specifier: 0.18.16
+        version: 0.18.16
       reg-publish-s3-plugin:
         specifier: 0.14.4
         version: 0.14.4
@@ -2856,31 +2856,6 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  reg-cli@0.19.0-rc3:
-    resolution: {integrity: sha512-r7i+MejBW23NCVDmFbF4KVOuwqvsZ09ZuHST4zrM6aWXgA8XlLz1iPDlan0D+YmMTNudqWC5e22JftoyLnhQRA==}
-    engines: {node: '>=20'}
-    hasBin: true
-    peerDependencies:
-      '@opentelemetry/api': ^1.9.1
-      '@opentelemetry/exporter-trace-otlp-http': ^0.216.0
-      '@opentelemetry/resources': ^2.7.1
-      '@opentelemetry/sdk-trace-base': ^2.7.1
-      '@opentelemetry/sdk-trace-node': ^2.7.1
-      '@opentelemetry/semantic-conventions': ^1.40.0
-    peerDependenciesMeta:
-      '@opentelemetry/api':
-        optional: true
-      '@opentelemetry/exporter-trace-otlp-http':
-        optional: true
-      '@opentelemetry/resources':
-        optional: true
-      '@opentelemetry/sdk-trace-base':
-        optional: true
-      '@opentelemetry/sdk-trace-node':
-        optional: true
-      '@opentelemetry/semantic-conventions':
-        optional: true
-
   reg-publish-s3-plugin@0.14.4:
     resolution: {integrity: sha512-2M//em2oVQ2LkawFfKTWCnowyk+5cMY3X/go1Dk5ZEZQjOyt1E1KOxFaITOyOVLCFwF7YfmYHlp/wWeZbfPh/w==}
 
@@ -4344,6 +4319,7 @@ snapshots:
   '@tybys/wasm-util@0.10.4':
     dependencies:
       tslib: 2.8.1
+    optional: true
 
   '@types/aria-query@5.0.4': {}
 
@@ -5861,11 +5837,6 @@ snapshots:
       x-img-diff-js: 0.3.5
       xmlbuilder2: 4.0.3
       yargs-parser: 21.1.1
-
-  reg-cli@0.19.0-rc3:
-    dependencies:
-      '@tybys/wasm-util': 0.10.4
-      x-img-diff-js: 0.3.5
 
   reg-publish-s3-plugin@0.14.4:
     dependencies:

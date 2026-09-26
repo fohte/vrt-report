@@ -243,8 +243,6 @@ const runRegCli = async ({ root, actual, expected, diff, json }) => {
       '--enableAntialias',
       '--thresholdPixel',
       '10',
-      '--diffFormat',
-      'png',
       '--ignoreChange',
     ],
     { cwd: repositoryDirectory, encoding: 'utf8' },
