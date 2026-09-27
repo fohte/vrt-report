@@ -12,7 +12,7 @@ import { chromium } from 'playwright'
 const { reportCaptures } = await import(
   new URL('./report-captures.mjs', import.meta.url)
 )
-const { verifySliderInteractions } = await import(
+const { verifyDetailInteractions } = await import(
   new URL('./verify-detail-interactions.mjs', import.meta.url)
 )
 
@@ -351,7 +351,7 @@ const startStaticServer = async () => {
   return ok(`http://127.0.0.1:${address.port}`)
 }
 
-const captureReport = async (browser, baseUrl, entry) => {
+const captureReport = async (browser, baseUrl, entry, interactionFailures) => {
   const reportPath = toPosixPath(
     relative(
       repositoryDirectory,
@@ -370,11 +370,9 @@ const captureReport = async (browser, baseUrl, entry) => {
   if (entry.showUnchanged) await page.locator('.show-unchanged').click()
   if (entry.detailView !== undefined) {
     if (entry.detailView === 'slide') {
-      const result = await verifySliderInteractions(page)
-      if (result.isErr()) {
-        await context.close()
-        return result
-      }
+      const result = await verifyDetailInteractions(page)
+      if (result.isErr())
+        interactionFailures.push(`${entry.filename}: ${result.error.message}`)
     } else {
       const changedVariant = page
         .locator('.variant:has(.variant-status.changed)')
@@ -388,7 +386,7 @@ const captureReport = async (browser, baseUrl, entry) => {
         .locator('#detail-modes')
         .getByRole('button', { name: label })
         .click()
-      if (entry.detailView === 'toggle')
+      if (entry.detailToggle === 'after')
         await page.getByRole('checkbox', { name: 'Show after image' }).check()
     }
   }
@@ -444,11 +442,28 @@ const capture = async () => {
   const server = await startStaticServer()
   if (server.isErr()) return server
 
+  const captureFailures = []
+  const interactionFailures = []
   for (const entry of reportCaptures) {
-    const captured = await captureReport(resources.browser, server.value, entry)
-    if (captured.isErr()) return captured
+    const captured = await ResultAsync.fromPromise(
+      captureReport(
+        resources.browser,
+        server.value,
+        entry,
+        interactionFailures,
+      ),
+      (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
+    ).andThen((captureResult) => captureResult)
+    if (captured.isErr())
+      captureFailures.push(`${entry.filename}: ${captured.error.message}`)
   }
 
+  if (captureFailures.length > 0)
+    return err(new Error(`Capture failures:\n${captureFailures.join('\n')}`))
+  if (interactionFailures.length > 0)
+    return err(
+      new Error(`Interaction failures:\n${interactionFailures.join('\n')}`),
+    )
   return ok(undefined)
 }
 

@@ -43,6 +43,13 @@ export const reportCaptures = [
   },
   {
     report: 'mixed',
+    filename: 'detail-toggle-after.png',
+    viewport: { width: 1440, height: 960 },
+    detailView: 'toggle',
+    detailToggle: 'after',
+  },
+  {
+    report: 'mixed',
     filename: 'detail-new.png',
     viewport: { width: 1440, height: 960 },
     detailStatus: 'new',
