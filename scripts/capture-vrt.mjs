@@ -9,6 +9,13 @@ import { fileURLToPath } from 'node:url'
 import { err, ok, ResultAsync } from 'neverthrow'
 import { chromium } from 'playwright'
 
+const { reportCaptures } = await import(
+  new URL('./report-captures.mjs', import.meta.url)
+)
+const { verifyDetailInteractions } = await import(
+  new URL('./verify-detail-interactions.mjs', import.meta.url)
+)
+
 const repositoryDirectory = resolve(
   fileURLToPath(new URL('..', import.meta.url)),
 )
@@ -51,31 +58,6 @@ const screenshotOptions = {
   caret: 'hide',
   scale: 'css',
 }
-
-const reportCaptures = [
-  {
-    report: 'mixed',
-    filename: 'mixed-desktop.png',
-    viewport: { width: 1440, height: 960 },
-    showUnchanged: true,
-  },
-  {
-    report: 'mixed',
-    filename: 'mixed-mobile.png',
-    viewport: { width: 390, height: 844 },
-    showUnchanged: true,
-  },
-  {
-    report: 'passed-only',
-    filename: 'unchanged-only.png',
-    viewport: { width: 1440, height: 960 },
-  },
-  {
-    report: 'empty',
-    filename: 'empty.png',
-    viewport: { width: 1440, height: 960 },
-  },
-]
 
 const resources = { browser: undefined, server: undefined }
 
@@ -369,7 +351,7 @@ const startStaticServer = async () => {
   return ok(`http://127.0.0.1:${address.port}`)
 }
 
-const captureReport = async (browser, baseUrl, entry) => {
+const captureReport = async (browser, baseUrl, entry, interactionFailures) => {
   const reportPath = toPosixPath(
     relative(
       repositoryDirectory,
@@ -386,18 +368,54 @@ const captureReport = async (browser, baseUrl, entry) => {
   const page = await context.newPage()
   await page.goto(`${baseUrl}/${reportPath}`, { waitUntil: 'networkidle' })
   if (entry.showUnchanged) await page.locator('.show-unchanged').click()
+  if (entry.detailView !== undefined) {
+    if (entry.detailView === 'slide') {
+      const result = await verifyDetailInteractions(page)
+      if (result.isErr())
+        interactionFailures.push(`${entry.filename}: ${result.error.message}`)
+    } else {
+      const changedVariant = page
+        .locator('.variant:has(.variant-status.changed)')
+        .first()
+      await changedVariant.locator('.image-button').first().click()
+      const label =
+        entry.detailView === '2up'
+          ? '2up'
+          : entry.detailView.charAt(0).toUpperCase() + entry.detailView.slice(1)
+      await page
+        .locator('#detail-modes')
+        .getByRole('button', { name: label })
+        .click()
+      if (entry.detailToggle === 'after')
+        await page.getByRole('checkbox', { name: 'Show after image' }).check()
+    }
+  }
+  if (entry.detailStatus !== undefined) {
+    const variant =
+      entry.detailStatus === 'unchanged'
+        ? page.locator('.variant[data-unchanged="true"]').first()
+        : page
+            .locator(`.variant:has(.variant-status.${entry.detailStatus})`)
+            .first()
+    await variant.locator('.image-button').first().click()
+  }
 
   await waitForPageAssets(page)
   await page.evaluate(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
   })
   await settlePage(page)
-  await captureScreenshot(page, join(screenshotDirectory, entry.filename), true)
+  await captureScreenshot(
+    page,
+    join(screenshotDirectory, entry.filename),
+    entry.detailView === undefined && entry.detailStatus === undefined,
+  )
 
   await context.close()
   process.stdout.write(
     `Captured ${join('__screenshots__', 'vrt-report', entry.filename)}\n`,
   )
+  return ok(undefined)
 }
 
 const closeResources = async () => {
@@ -424,9 +442,28 @@ const capture = async () => {
   const server = await startStaticServer()
   if (server.isErr()) return server
 
-  for (const entry of reportCaptures)
-    await captureReport(resources.browser, server.value, entry)
+  const captureFailures = []
+  const interactionFailures = []
+  for (const entry of reportCaptures) {
+    const captured = await ResultAsync.fromPromise(
+      captureReport(
+        resources.browser,
+        server.value,
+        entry,
+        interactionFailures,
+      ),
+      (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
+    ).andThen((captureResult) => captureResult)
+    if (captured.isErr())
+      captureFailures.push(`${entry.filename}: ${captured.error.message}`)
+  }
 
+  if (captureFailures.length > 0)
+    return err(new Error(`Capture failures:\n${captureFailures.join('\n')}`))
+  if (interactionFailures.length > 0)
+    return err(
+      new Error(`Interaction failures:\n${interactionFailures.join('\n')}`),
+    )
   return ok(undefined)
 }
 

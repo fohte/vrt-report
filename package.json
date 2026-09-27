@@ -27,7 +27,7 @@
     }
   },
   "scripts": {
-    "build": "git clean -fdX dist && tsc --project tsconfig.build.json && cp src/report-template.html src/report-client.js src/report-client-tree.js src/report-styles.css src/report-responsive.css dist/",
+    "build": "git clean -fdX dist && tsc --project tsconfig.build.json && cp src/report-template.html src/report-client.js src/report-client-tree.js src/report-client-comparison.js src/report-styles.css src/report-detail-styles.css src/report-responsive.css dist/",
     "lint": "eslint .",
     "vrt:capture": "pnpm build && playwright install chromium && node scripts/capture-vrt.mjs",
     "format:eslint": "eslint --fix .",
