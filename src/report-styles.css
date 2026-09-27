@@ -69,17 +69,12 @@ button {
   color: var(--muted);
   font-size: 13px;
 }
-.summary,
 .filters,
 .view-modes {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.summary {
-  margin-left: auto;
-}
-.summary-item,
 .filter,
 .mode {
   border: 1px solid var(--line);
@@ -90,23 +85,23 @@ button {
   white-space: nowrap;
   font-size: 12px;
 }
-.summary-item strong {
+.filter-count {
   color: var(--fg);
   margin-left: 4px;
 }
-.summary-item.changed strong,
+.filter.changed .filter-count,
 .status.changed {
   color: var(--changed);
 }
-.summary-item.new strong,
+.filter.new .filter-count,
 .status.new {
   color: var(--new);
 }
-.summary-item.deleted strong,
+.filter.deleted .filter-count,
 .status.deleted {
   color: var(--deleted);
 }
-.summary-item.passed strong {
+.filter.passed .filter-count {
   color: var(--muted);
 }
 .filter,
@@ -223,6 +218,9 @@ button {
   height: 7px;
   border-radius: 50%;
   flex: none;
+  background: var(--dim);
+}
+.tree-dot.changed {
   background: var(--changed);
 }
 .tree-dot.new {
@@ -230,6 +228,22 @@ button {
 }
 .tree-dot.deleted {
   background: var(--deleted);
+}
+.tree-dot.changed.new {
+  background: conic-gradient(var(--changed) 0 50%, var(--new) 0 100%);
+}
+.tree-dot.changed.deleted {
+  background: conic-gradient(var(--changed) 0 50%, var(--deleted) 0 100%);
+}
+.tree-dot.new.deleted {
+  background: conic-gradient(var(--new) 0 50%, var(--deleted) 0 100%);
+}
+.tree-dot.changed.new.deleted {
+  background: conic-gradient(
+    var(--changed) 0 33.333%,
+    var(--new) 0 66.666%,
+    var(--deleted) 0 100%
+  );
 }
 .main {
   min-width: 0;
