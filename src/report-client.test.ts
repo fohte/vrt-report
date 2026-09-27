@@ -4,10 +4,15 @@ import { Script } from 'node:vm'
 import { Result } from 'neverthrow'
 import { describe, expect, it } from 'vitest'
 
-const reportClient = readFileSync(
-  new URL('./report-client.js', import.meta.url),
-  'utf8',
-)
+const reportClient = [
+  'report-client-tree.js',
+  'report-client-comparison.js',
+  'report-client.js',
+]
+  .map((filename) =>
+    readFileSync(new URL(`./${filename}`, import.meta.url), 'utf8'),
+  )
+  .join('\n')
 
 const clientScriptSpec = (source: string): { valid: boolean } => {
   const parsed = Result.fromThrowable(
