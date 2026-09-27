@@ -9,6 +9,10 @@ import { fileURLToPath } from 'node:url'
 import { err, ok, ResultAsync } from 'neverthrow'
 import { chromium } from 'playwright'
 
+const { verifySliderInteractions } = await import(
+  new URL('./verify-detail-interactions.mjs', import.meta.url)
+)
+
 const repositoryDirectory = resolve(
   fileURLToPath(new URL('..', import.meta.url)),
 )
@@ -64,6 +68,55 @@ const reportCaptures = [
     filename: 'mixed-mobile.png',
     viewport: { width: 390, height: 844 },
     showUnchanged: true,
+  },
+  {
+    report: 'mixed',
+    filename: 'detail-diff.png',
+    viewport: { width: 1440, height: 960 },
+    detailView: 'diff',
+  },
+  {
+    report: 'mixed',
+    filename: 'detail-slide.png',
+    viewport: { width: 1440, height: 960 },
+    detailView: 'slide',
+  },
+  {
+    report: 'mixed',
+    filename: 'detail-2up.png',
+    viewport: { width: 1440, height: 960 },
+    detailView: '2up',
+  },
+  {
+    report: 'mixed',
+    filename: 'detail-blend.png',
+    viewport: { width: 1440, height: 960 },
+    detailView: 'blend',
+  },
+  {
+    report: 'mixed',
+    filename: 'detail-toggle.png',
+    viewport: { width: 1440, height: 960 },
+    detailView: 'toggle',
+  },
+  {
+    report: 'mixed',
+    filename: 'detail-new.png',
+    viewport: { width: 1440, height: 960 },
+    detailStatus: 'new',
+  },
+  {
+    report: 'mixed',
+    filename: 'detail-deleted.png',
+    viewport: { width: 1440, height: 960 },
+    detailStatus: 'deleted',
+  },
+  {
+    report: 'mixed',
+    filename: 'detail-unchanged.png',
+    viewport: { width: 1440, height: 960 },
+    showUnchanged: true,
+    detailStatus: 'unchanged',
   },
   {
     report: 'passed-only',
@@ -386,18 +439,56 @@ const captureReport = async (browser, baseUrl, entry) => {
   const page = await context.newPage()
   await page.goto(`${baseUrl}/${reportPath}`, { waitUntil: 'networkidle' })
   if (entry.showUnchanged) await page.locator('.show-unchanged').click()
+  if (entry.detailView !== undefined) {
+    if (entry.detailView === 'slide') {
+      const result = await verifySliderInteractions(page)
+      if (result.isErr()) {
+        await context.close()
+        return result
+      }
+    } else {
+      const changedVariant = page
+        .locator('.variant:has(.variant-status.changed)')
+        .first()
+      await changedVariant.locator('.image-button').first().click()
+      const label =
+        entry.detailView === '2up'
+          ? '2up'
+          : entry.detailView.charAt(0).toUpperCase() + entry.detailView.slice(1)
+      await page
+        .locator('#detail-modes')
+        .getByRole('button', { name: label })
+        .click()
+      if (entry.detailView === 'toggle')
+        await page.getByRole('checkbox', { name: 'Show after image' }).check()
+    }
+  }
+  if (entry.detailStatus !== undefined) {
+    const variant =
+      entry.detailStatus === 'unchanged'
+        ? page.locator('.variant[data-unchanged="true"]').first()
+        : page
+            .locator(`.variant:has(.variant-status.${entry.detailStatus})`)
+            .first()
+    await variant.locator('.image-button').first().click()
+  }
 
   await waitForPageAssets(page)
   await page.evaluate(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
   })
   await settlePage(page)
-  await captureScreenshot(page, join(screenshotDirectory, entry.filename), true)
+  await captureScreenshot(
+    page,
+    join(screenshotDirectory, entry.filename),
+    entry.detailView === undefined && entry.detailStatus === undefined,
+  )
 
   await context.close()
   process.stdout.write(
     `Captured ${join('__screenshots__', 'vrt-report', entry.filename)}\n`,
   )
+  return ok(undefined)
 }
 
 const closeResources = async () => {
@@ -424,8 +515,10 @@ const capture = async () => {
   const server = await startStaticServer()
   if (server.isErr()) return server
 
-  for (const entry of reportCaptures)
-    await captureReport(resources.browser, server.value, entry)
+  for (const entry of reportCaptures) {
+    const captured = await captureReport(resources.browser, server.value, entry)
+    if (captured.isErr()) return captured
+  }
 
   return ok(undefined)
 }

@@ -1,6 +1,12 @@
 ;(() => {
   const report = JSON.parse(document.getElementById('report-data').textContent)
-  const state = { query: '', filter: 'changes', view: 'pair', selection: null }
+  const state = {
+    query: '',
+    filter: 'changes',
+    view: 'pair',
+    detailView: 'slide',
+    selection: null,
+  }
   const tree = document.getElementById('story-tree')
   const storyList = document.getElementById('story-list')
   const count = document.getElementById('list-count')
@@ -9,6 +15,7 @@
   const dialogTitle = document.getElementById('detail-title')
   const dialogVariant = document.getElementById('detail-variant')
   const dialogContent = document.getElementById('detail-content')
+  const detailModes = document.getElementById('detail-modes')
 
   const titleCase = (status) => status.charAt(0).toUpperCase() + status.slice(1)
   const storyLabel = (story) => story.displayName ?? story.storyId
@@ -89,10 +96,45 @@
     openDetail,
   })
 
+  let detailSelection = null
+  for (const [view, label] of [
+    ['diff', 'Diff'],
+    ['slide', 'Slide'],
+    ['2up', '2up'],
+    ['blend', 'Blend'],
+    ['toggle', 'Toggle'],
+  ]) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'detail-mode'
+    button.dataset.mode = view
+    button.setAttribute('aria-pressed', String(view === state.detailView))
+    button.textContent = label
+    button.addEventListener('click', () => {
+      state.detailView = view
+      renderDetail()
+    })
+    detailModes.append(button)
+  }
+
+  function renderDetail() {
+    if (detailSelection === null) return
+    for (const button of detailModes.querySelectorAll('.detail-mode'))
+      button.setAttribute(
+        'aria-pressed',
+        String(button.dataset.mode === state.detailView),
+      )
+    dialogContent.replaceChildren(
+      createVariant(detailSelection.variant, detailSelection.story, true),
+    )
+  }
+
   function openDetail(story, variant) {
+    detailSelection = { story, variant }
     dialogTitle.textContent = story.component + ' / ' + storyLabel(story)
     dialogVariant.textContent = variant.name
-    dialogContent.replaceChildren(createVariant(variant, story, true))
+    detailModes.hidden = variant.status !== 'changed'
+    renderDetail()
     dialog.showModal()
   }
 
