@@ -119,3 +119,13 @@ dialog::backdrop {
 .toggle-control input {
   accent-color: var(--accent);
 }
+.blend .image-placeholder,
+.toggle .image-placeholder {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  min-height: 0;
+  aspect-ratio: auto;
+  border: 0;
+  padding: 0;
+}

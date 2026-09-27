@@ -4,6 +4,30 @@ const createReportComparison = ({
   titleCase,
   openDetail,
 }) => {
+  function createImageFallback(image, message) {
+    const placeholder = document.createElement('span')
+    placeholder.className = 'image-placeholder'
+    placeholder.hidden = true
+    placeholder.textContent = message
+    let visible = true
+    let failed = false
+    const update = () => {
+      image.hidden = !visible || failed
+      placeholder.hidden = !visible || !failed
+    }
+    image.addEventListener('error', () => {
+      failed = true
+      update()
+    })
+    return {
+      placeholder,
+      setVisible(value) {
+        visible = value
+        update()
+      },
+    }
+  }
+
   function createPane(label, source, story, variant, detail) {
     const pane = document.createElement('div')
     pane.className = 'pane'
@@ -37,19 +61,14 @@ const createReportComparison = ({
         ')',
     )
     const image = document.createElement('img')
-    image.src = source
     image.alt = label + ': ' + storyLabel(story)
     image.loading = detail ? 'eager' : 'lazy'
-    const placeholder = document.createElement('span')
-    placeholder.className = 'image-placeholder'
-    placeholder.hidden = true
-    placeholder.textContent =
-      label === 'Diff' ? 'Diff unavailable' : 'Image unavailable'
-    image.addEventListener('error', () => {
-      image.hidden = true
-      placeholder.hidden = false
-    })
-    button.append(image, placeholder)
+    const fallback = createImageFallback(
+      image,
+      label === 'Diff' ? 'Diff unavailable' : 'Image unavailable',
+    )
+    image.src = source
+    button.append(image, fallback.placeholder)
     if (!detail)
       button.addEventListener('click', () => openDetail(story, variant))
     pane.append(button)
@@ -145,15 +164,18 @@ const createReportComparison = ({
     const blend = document.createElement('div')
     blend.className = 'blend'
     const before = document.createElement('img')
-    before.src = variant.before
     before.alt = 'Before: ' + storyLabel(story)
     before.loading = 'eager'
+    const beforeFallback = createImageFallback(before, 'Image unavailable')
+    before.src = variant.before
     const after = document.createElement('img')
     after.className = 'blend-after'
-    after.src = variant.after
     after.alt = 'After: ' + storyLabel(story)
     after.loading = 'eager'
+    const afterFallback = createImageFallback(after, 'Image unavailable')
+    after.src = variant.after
     after.style.opacity = '0.5'
+    afterFallback.placeholder.style.opacity = '0.5'
     const input = document.createElement('input')
     input.className = 'blend-control'
     input.type = 'range'
@@ -162,7 +184,9 @@ const createReportComparison = ({
     input.value = '50'
     input.setAttribute('aria-label', 'After image opacity')
     input.addEventListener('input', () => {
-      after.style.opacity = String(Number(input.value) / 100)
+      const opacity = String(Number(input.value) / 100)
+      after.style.opacity = opacity
+      afterFallback.placeholder.style.opacity = opacity
     })
     const beforeLabel = document.createElement('span')
     beforeLabel.className = 'slider-label before'
@@ -170,7 +194,15 @@ const createReportComparison = ({
     const afterLabel = document.createElement('span')
     afterLabel.className = 'slider-label after'
     afterLabel.textContent = 'After'
-    blend.append(before, after, beforeLabel, afterLabel, input)
+    blend.append(
+      before,
+      beforeFallback.placeholder,
+      after,
+      afterFallback.placeholder,
+      beforeLabel,
+      afterLabel,
+      input,
+    )
     return blend
   }
 
@@ -178,14 +210,16 @@ const createReportComparison = ({
     const toggle = document.createElement('div')
     toggle.className = 'toggle'
     const before = document.createElement('img')
-    before.src = variant.before
     before.alt = 'Before: ' + storyLabel(story)
     before.loading = 'eager'
+    const beforeFallback = createImageFallback(before, 'Image unavailable')
+    before.src = variant.before
     const after = document.createElement('img')
-    after.src = variant.after
     after.alt = 'After: ' + storyLabel(story)
     after.loading = 'eager'
-    after.hidden = true
+    const afterFallback = createImageFallback(after, 'Image unavailable')
+    after.src = variant.after
+    afterFallback.setVisible(false)
     const control = document.createElement('label')
     control.className = 'toggle-control'
     const beforeLabel = document.createElement('span')
@@ -194,13 +228,19 @@ const createReportComparison = ({
     input.type = 'checkbox'
     input.setAttribute('aria-label', 'Show after image')
     input.addEventListener('change', () => {
-      before.hidden = input.checked
-      after.hidden = !input.checked
+      beforeFallback.setVisible(!input.checked)
+      afterFallback.setVisible(input.checked)
     })
     const afterLabel = document.createElement('span')
     afterLabel.textContent = 'After'
     control.append(beforeLabel, input, afterLabel)
-    toggle.append(before, after, control)
+    toggle.append(
+      before,
+      beforeFallback.placeholder,
+      after,
+      afterFallback.placeholder,
+      control,
+    )
     return toggle
   }
 
@@ -209,8 +249,6 @@ const createReportComparison = ({
       variant.status === 'unchanged' ||
       (detail && variant.status !== 'changed')
     ) {
-      const comparison = document.createElement('div')
-      comparison.className = 'comparison'
       const label =
         variant.status === 'deleted'
           ? 'Before'
@@ -219,69 +257,51 @@ const createReportComparison = ({
             : 'After'
       const source =
         variant.status === 'deleted' ? variant.before : variant.after
-      comparison.append(createPane(label, source, story, variant, detail))
-      return comparison
+      return wrapComparison(createPane(label, source, story, variant, detail))
     }
     if (detail && state.detailView === 'diff') {
-      const comparison = document.createElement('div')
-      comparison.className = 'comparison'
-      comparison.append(
+      return wrapComparison(
         createPane('Diff', variant.diff, story, variant, detail),
       )
-      return comparison
     }
     if (detail && state.detailView === 'slide') {
-      const comparison = document.createElement('div')
-      comparison.className = 'comparison'
-      const pane = document.createElement('div')
-      pane.className = 'pane'
-      pane.append(createSlider(variant, story, detail))
-      comparison.append(pane)
-      return comparison
+      return wrapComparison(
+        createContentPane(createSlider(variant, story, detail)),
+      )
     }
     if (detail && state.detailView === 'blend') {
-      const comparison = document.createElement('div')
-      comparison.className = 'comparison'
-      const pane = document.createElement('div')
-      pane.className = 'pane'
-      pane.append(createBlend(variant, story))
-      comparison.append(pane)
-      return comparison
+      return wrapComparison(createContentPane(createBlend(variant, story)))
     }
     if (detail && state.detailView === 'toggle') {
-      const comparison = document.createElement('div')
-      comparison.className = 'comparison'
-      const pane = document.createElement('div')
-      pane.className = 'pane'
-      pane.append(createToggle(variant, story))
-      comparison.append(pane)
-      return comparison
+      return wrapComparison(createContentPane(createToggle(variant, story)))
     }
     if (!detail && state.view === 'diff') {
-      const comparison = document.createElement('div')
-      comparison.className = 'comparison'
-      comparison.append(
+      return wrapComparison(
         createPane('Diff', variant.diff, story, variant, detail),
       )
-      return comparison
     }
     if (!detail && state.view === 'slider' && variant.before && variant.after) {
-      const comparison = document.createElement('div')
-      comparison.className = 'comparison'
-      const pane = document.createElement('div')
-      pane.className = 'pane'
-      pane.append(createSlider(variant, story, detail))
-      comparison.append(pane)
-      return comparison
+      return wrapComparison(
+        createContentPane(createSlider(variant, story, detail)),
+      )
     }
-    const comparison = document.createElement('div')
-    comparison.className = 'comparison'
-    comparison.append(
+    return wrapComparison(
       createPane('Before', variant.before, story, variant, detail),
-    )
-    comparison.append(
       createPane('After', variant.after, story, variant, detail),
     )
+  }
+
+  function createContentPane(content) {
+    const pane = document.createElement('div')
+    pane.className = 'pane'
+    pane.append(content)
+    return pane
+  }
+
+  function wrapComparison(...children) {
+    const comparison = document.createElement('div')
+    comparison.className = 'comparison'
+    comparison.append(...children)
     return comparison
   }
 
