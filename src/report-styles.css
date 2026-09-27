@@ -403,6 +403,7 @@ button {
 }
 .slider {
   position: relative;
+  touch-action: none;
   overflow: hidden;
   min-height: 200px;
   aspect-ratio: 16 / 10;
