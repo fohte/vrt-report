@@ -22,8 +22,9 @@
   const countStoriesWithStatus = (status) =>
     report.stories.filter((story) => storyStatuses(story).includes(status))
       .length
+  const hasChanges = (statuses) => statuses.length > 0
   const countStoriesWithChanges = () =>
-    report.stories.filter((story) => storyStatuses(story).length > 0).length
+    report.stories.filter((story) => hasChanges(storyStatuses(story))).length
   const matchesSearch = (story) => {
     if (!state.query) return true
     const text = [
@@ -41,7 +42,7 @@
     const statuses = storyStatuses(story)
     return (
       state.filter === 'all' ||
-      (state.filter === 'changes' && statuses.length > 0) ||
+      (state.filter === 'changes' && hasChanges(statuses)) ||
       statuses.includes(state.filter)
     )
   }
