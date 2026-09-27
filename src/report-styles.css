@@ -223,6 +223,9 @@ button {
   height: 7px;
   border-radius: 50%;
   flex: none;
+  background: var(--dim);
+}
+.tree-dot.changed {
   background: var(--changed);
 }
 .tree-dot.new {
@@ -230,6 +233,22 @@ button {
 }
 .tree-dot.deleted {
   background: var(--deleted);
+}
+.tree-dot.changed.new {
+  background: conic-gradient(var(--changed) 0 50%, var(--new) 0 100%);
+}
+.tree-dot.changed.deleted {
+  background: conic-gradient(var(--changed) 0 50%, var(--deleted) 0 100%);
+}
+.tree-dot.new.deleted {
+  background: conic-gradient(var(--new) 0 50%, var(--deleted) 0 100%);
+}
+.tree-dot.changed.new.deleted {
+  background: conic-gradient(
+    var(--changed) 0 33.333%,
+    var(--new) 0 66.666%,
+    var(--deleted) 0 100%
+  );
 }
 .main {
   min-width: 0;

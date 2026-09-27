@@ -90,9 +90,11 @@ const createReportTree = ({
     )
     button.dataset.selectionKind = 'component'
     button.dataset.selectionPath = component.sourcePath
-    const statuses = [...new Set(component.stories.flatMap(storyStatuses))]
+    const statuses = ['changed', 'new', 'deleted'].filter((status) =>
+      component.stories.some((story) => storyStatuses(story).includes(status)),
+    )
     const dot = document.createElement('span')
-    dot.className = 'tree-dot ' + (statuses.length === 1 ? statuses[0] : '')
+    dot.className = `tree-dot ${statuses.join(' ') || 'unchanged'}`
     const label = document.createElement('span')
     label.textContent = component.component
     const badge = document.createElement('span')

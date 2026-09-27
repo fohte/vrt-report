@@ -1,6 +1,6 @@
 ;(() => {
   const report = JSON.parse(document.getElementById('report-data').textContent)
-  const state = { query: '', filter: 'all', view: 'pair', selection: null }
+  const state = { query: '', filter: 'changes', view: 'pair', selection: null }
   const tree = document.getElementById('story-tree')
   const storyList = document.getElementById('story-list')
   const count = document.getElementById('list-count')
@@ -22,6 +22,8 @@
   const countStoriesWithStatus = (status) =>
     report.stories.filter((story) => storyStatuses(story).includes(status))
       .length
+  const countStoriesWithChanges = () =>
+    report.stories.filter((story) => storyStatuses(story).length > 0).length
   const matchesSearch = (story) => {
     if (!state.query) return true
     const text = [
@@ -35,8 +37,14 @@
       .toLowerCase()
     return text.includes(state.query)
   }
-  const matchesFilter = (story) =>
-    state.filter === 'all' || storyStatuses(story).includes(state.filter)
+  const matchesFilter = (story) => {
+    const statuses = storyStatuses(story)
+    return (
+      state.filter === 'all' ||
+      (state.filter === 'changes' && statuses.length > 0) ||
+      statuses.includes(state.filter)
+    )
+  }
   const matchesSelection = (story) => {
     if (!state.selection) return true
     if (state.selection.kind === 'component')
@@ -307,6 +315,7 @@
 
   const filters = document.getElementById('filters')
   for (const [filter, label, value] of [
+    ['changes', 'Changes', countStoriesWithChanges()],
     ['all', 'All', report.stories.length],
     ['changed', 'Changed', countStoriesWithStatus('changed')],
     ['new', 'New', countStoriesWithStatus('new')],
