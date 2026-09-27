@@ -25,6 +25,8 @@
   const hasChanges = (statuses) => statuses.length > 0
   const countStoriesWithChanges = () =>
     report.stories.filter((story) => hasChanges(storyStatuses(story))).length
+  const countPassedStories = () =>
+    report.stories.filter((story) => !hasChanges(storyStatuses(story))).length
   const matchesSearch = (story) => {
     if (!state.query) return true
     const text = [
@@ -43,6 +45,7 @@
     return (
       state.filter === 'all' ||
       (state.filter === 'changes' && hasChanges(statuses)) ||
+      (state.filter === 'passed' && !hasChanges(statuses)) ||
       statuses.includes(state.filter)
     )
   }
@@ -298,22 +301,6 @@
     renderList()
   }
 
-  const summary = document.getElementById('summary')
-  for (const [status, label] of [
-    ['changed', 'Changed'],
-    ['new', 'New'],
-    ['deleted', 'Deleted'],
-    ['passed', 'Passed'],
-  ]) {
-    const item = document.createElement('span')
-    item.className = 'summary-item ' + status
-    item.textContent = label
-    const value = document.createElement('strong')
-    value.textContent = String(report.counts[status])
-    item.append(value)
-    summary.append(item)
-  }
-
   const filters = document.getElementById('filters')
   for (const [filter, label, value] of [
     ['changes', 'Changes', countStoriesWithChanges()],
@@ -321,12 +308,18 @@
     ['changed', 'Changed', countStoriesWithStatus('changed')],
     ['new', 'New', countStoriesWithStatus('new')],
     ['deleted', 'Deleted', countStoriesWithStatus('deleted')],
+    ['passed', 'Passed', countPassedStories()],
   ]) {
     const button = document.createElement('button')
     button.type = 'button'
-    button.className = 'filter'
+    button.className = 'filter ' + filter
     button.setAttribute('aria-pressed', String(filter === state.filter))
-    button.textContent = label + ' ' + value
+    const filterLabel = document.createElement('span')
+    filterLabel.textContent = label
+    const filterCount = document.createElement('strong')
+    filterCount.className = 'filter-count'
+    filterCount.textContent = String(value)
+    button.append(filterLabel, filterCount)
     button.addEventListener('click', () => {
       state.filter = filter
       for (const item of filters.querySelectorAll('.filter'))
