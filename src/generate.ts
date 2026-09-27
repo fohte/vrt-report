@@ -61,11 +61,17 @@ export const generateReport = (
       const assetsPrefix = relative(dirname(outputPath), assetsDirectory)
         .split(sep)
         .join('/')
+      const clientScript = Promise.all([
+        readFile(new URL('./report-client-tree.js', import.meta.url), 'utf8'),
+        readFile(new URL('./report-client.js', import.meta.url), 'utf8'),
+      ]).then(([clientTreeScript, clientScript]) =>
+        [clientTreeScript, clientScript].join('\n'),
+      )
 
       return ResultAsync.fromPromise(
         Promise.all([
           readFile(new URL('./report-template.html', import.meta.url), 'utf8'),
-          readFile(new URL('./report-client.js', import.meta.url), 'utf8'),
+          clientScript,
           readFile(new URL('./report-styles.css', import.meta.url), 'utf8'),
           readFile(new URL('./report-responsive.css', import.meta.url), 'utf8'),
         ]),
