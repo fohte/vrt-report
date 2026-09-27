@@ -1,9 +1,11 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, relative, resolve, sep } from 'node:path'
+import { dirname, join, relative, resolve, sep } from 'node:path'
 
-import { ResultAsync } from 'neverthrow'
+import { errAsync, okAsync, ResultAsync } from 'neverthrow'
 
+import { decodeDiffRegions } from '#diff-regions'
 import { renderReport } from '#render'
+import type { ReportModel } from '#report-model'
 import { buildReportModel, parseRegOutput } from '#report-model'
 import { addCsfDisplayNames } from '#story-name'
 
@@ -36,6 +38,59 @@ class ReportAssetError extends Error {
   }
 }
 
+class DiffImageReadError extends Error {
+  constructor(path: string, cause: unknown) {
+    super(`Could not read diff image: ${path}`, { cause })
+    this.name = new.target.name
+  }
+}
+
+const isMissingFile = (cause: unknown): boolean =>
+  typeof cause === 'object' &&
+  cause !== null &&
+  'code' in cause &&
+  cause.code === 'ENOENT'
+
+const readDiffRegions = (path: string) =>
+  ResultAsync.fromPromise(
+    readFile(path).then(decodeDiffRegions),
+    (cause) => new DiffImageReadError(path, cause),
+  )
+    .andThen((result) => result)
+    .orElse((error) =>
+      isMissingFile(error.cause) ? okAsync(null) : errAsync(error),
+    )
+
+const addDiffRegions = (model: ReportModel, assetsDirectory: string) => {
+  const reads = model.stories.flatMap((story) =>
+    story.variants
+      .filter((variant) => variant.status === 'changed')
+      .map((variant) =>
+        readDiffRegions(join(assetsDirectory, 'diff', variant.key)).map(
+          (regions) => [variant.key, regions] as const,
+        ),
+      ),
+  )
+
+  return ResultAsync.combine(reads).map((entries) => {
+    const regionsByKey = new Map(entries)
+    return {
+      ...model,
+      stories: model.stories.map((story) => ({
+        ...story,
+        variants: story.variants.map((variant) =>
+          variant.status === 'changed'
+            ? {
+                ...variant,
+                diffRegions: regionsByKey.get(variant.key) ?? null,
+              }
+            : variant,
+        ),
+      })),
+    }
+  })
+}
+
 export const generateReport = (
   options: GenerateOptions,
 ): ResultAsync<{ outputPath: string }, Error> => {
@@ -50,6 +105,7 @@ export const generateReport = (
   )
     .andThen(parseRegOutput)
     .andThen(buildReportModel)
+    .andThen((model) => addDiffRegions(model, assetsDirectory))
     .andThen((model) =>
       addCsfDisplayNames(
         model,

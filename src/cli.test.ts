@@ -12,6 +12,7 @@ import {
 } from 'node:fs'
 import { join, resolve } from 'node:path'
 
+import { PNG } from 'pngjs'
 import { afterEach, describe, expect, it } from 'vitest'
 
 const reportInput = {
@@ -21,6 +22,20 @@ const reportInput = {
     'tablet/legacy/removed-card.stories.tsx/renders-old-control.png',
   ],
   passedItems: ['mobile/ui/example-card.stories.tsx/shows-panel.png'],
+}
+
+const createDiffImage = (): Buffer => {
+  const image = new PNG({ width: 20, height: 16 })
+  for (const [x, y] of [
+    [2, 2],
+    [4, 4],
+    [17, 10],
+  ] as const) {
+    const offset = (y * image.width + x) * 4
+    image.data[offset] = 255
+    image.data[offset + 3] = 255
+  }
+  return PNG.sync.write(image)
 }
 
 let tempDirectory: string | undefined
@@ -41,6 +56,11 @@ const installPackage = (): { directory: string; binPath: string } => {
   symlinkSync(
     resolve('node_modules/neverthrow'),
     join(directory, 'node_modules', 'neverthrow'),
+    'dir',
+  )
+  symlinkSync(
+    resolve('node_modules/pngjs'),
+    join(directory, 'node_modules', 'pngjs'),
     'dir',
   )
   return { directory, binPath: join(packageDirectory, 'bin', 'vrt-report.js') }
@@ -124,6 +144,16 @@ Options:
     const { directory, binPath } = installPackage()
     const inputPath = join(directory, 'out.json')
     const outputPath = join(directory, 'reports', 'report.html')
+    const diffDirectory = join(
+      directory,
+      'assets',
+      'diff',
+      'desktop',
+      'ui',
+      'example-card.stories.tsx',
+    )
+    mkdirSync(diffDirectory, { recursive: true })
+    writeFileSync(join(diffDirectory, 'shows-panel.png'), createDiffImage())
     writeFileSync(inputPath, JSON.stringify(reportInput))
 
     expect(
@@ -196,6 +226,14 @@ Options:
                 after:
                   '../assets/actual/desktop/ui/example-card.stories.tsx/shows-panel.png',
                 diff: '../assets/diff/desktop/ui/example-card.stories.tsx/shows-panel.png',
+                diffRegions: {
+                  width: 20,
+                  height: 16,
+                  rectangles: [
+                    { x: 2, y: 2, width: 3, height: 3 },
+                    { x: 17, y: 10, width: 1, height: 1 },
+                  ],
+                },
               },
               {
                 name: 'mobile',
@@ -265,6 +303,7 @@ Options:
                 after:
                   'assets/actual/desktop/ui/example-card.stories.tsx/shows-panel.png',
                 diff: 'assets/diff/desktop/ui/example-card.stories.tsx/shows-panel.png',
+                diffRegions: null,
               },
             ],
           },

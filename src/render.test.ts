@@ -48,7 +48,18 @@ describe('renderReport', () => {
           component: 'example-card',
           sourcePath: 'ui/example-card.stories.tsx',
           directories: ['ui'],
-          variants: [{ name: 'desktop', status: 'changed', key }],
+          variants: [
+            {
+              name: 'desktop',
+              status: 'changed',
+              key,
+              diffRegions: {
+                width: 20,
+                height: 16,
+                rectangles: [{ x: 2, y: 3, width: 5, height: 4 }],
+              },
+            },
+          ],
         },
       ],
     }
@@ -83,6 +94,11 @@ describe('renderReport', () => {
                 after:
                   'assets/actual/desktop/ui/example-card.stories.tsx/shows%20%231.png',
                 diff: 'assets/diff/desktop/ui/example-card.stories.tsx/shows%20%231.png',
+                diffRegions: {
+                  width: 20,
+                  height: 16,
+                  rectangles: [{ x: 2, y: 3, width: 5, height: 4 }],
+                },
               },
             ],
           },
@@ -134,6 +150,7 @@ describe('renderReport', () => {
                 before: '../../baseline/actual/screen.png',
                 after: 'actual/screen.png',
                 diff: 'diff/screen.png',
+                diffRegions: null,
               },
             ],
           },
