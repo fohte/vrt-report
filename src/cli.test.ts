@@ -10,9 +10,11 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
+
+import { createDiffImage } from '#test-fixtures/diff-image'
 
 const reportInput = {
   failedItems: ['desktop/ui/example-card.stories.tsx/shows-panel.png'],
@@ -41,6 +43,11 @@ const installPackage = (): { directory: string; binPath: string } => {
   symlinkSync(
     resolve('node_modules/neverthrow'),
     join(directory, 'node_modules', 'neverthrow'),
+    'dir',
+  )
+  symlinkSync(
+    resolve('node_modules/pngjs'),
+    join(directory, 'node_modules', 'pngjs'),
     'dir',
   )
   return { directory, binPath: join(packageDirectory, 'bin', 'vrt-report.js') }
@@ -124,6 +131,16 @@ Options:
     const { directory, binPath } = installPackage()
     const inputPath = join(directory, 'out.json')
     const outputPath = join(directory, 'reports', 'report.html')
+    const diffDirectory = join(
+      directory,
+      'assets',
+      'diff',
+      'desktop',
+      'ui',
+      'example-card.stories.tsx',
+    )
+    mkdirSync(diffDirectory, { recursive: true })
+    writeFileSync(join(diffDirectory, 'shows-panel.png'), createDiffImage())
     writeFileSync(inputPath, JSON.stringify(reportInput))
 
     expect(
@@ -196,6 +213,14 @@ Options:
                 after:
                   '../assets/actual/desktop/ui/example-card.stories.tsx/shows-panel.png',
                 diff: '../assets/diff/desktop/ui/example-card.stories.tsx/shows-panel.png',
+                diffRegions: {
+                  width: 20,
+                  height: 16,
+                  rectangles: [
+                    { x: 2, y: 2, width: 3, height: 3 },
+                    { x: 17, y: 10, width: 1, height: 1 },
+                  ],
+                },
               },
               {
                 name: 'mobile',
@@ -265,6 +290,7 @@ Options:
                 after:
                   'assets/actual/desktop/ui/example-card.stories.tsx/shows-panel.png',
                 diff: 'assets/diff/desktop/ui/example-card.stories.tsx/shows-panel.png',
+                diffRegions: null,
               },
             ],
           },
@@ -294,6 +320,51 @@ Options:
       stdout: '',
       stderr:
         "vrt-report: Could not read report data: <temp>/missing.json: ENOENT: no such file or directory, open '<temp>/missing.json'\n",
+      error: undefined,
+      reportData: null,
+    })
+  })
+
+  it('includes the diff image path when decoding fails', () => {
+    const { directory, binPath } = installPackage()
+    const inputPath = join(directory, 'out.json')
+    const outputPath = join(directory, 'report.html')
+    const assetsDirectory = join(directory, 'assets')
+    const key = 'desktop/ui/example-card.stories.tsx/shows-panel.png'
+    const diffPath = join(assetsDirectory, 'diff', key)
+    mkdirSync(dirname(diffPath), { recursive: true })
+    writeFileSync(diffPath, Buffer.from('invalid PNG'))
+    writeFileSync(
+      inputPath,
+      JSON.stringify({
+        failedItems: [key],
+        newItems: [],
+        deletedItems: [],
+        passedItems: [],
+      }),
+    )
+
+    expect(
+      normalizeTempPath(
+        runCli(
+          binPath,
+          [
+            '--input',
+            inputPath,
+            '--assets-dir',
+            assetsDirectory,
+            '--output',
+            outputPath,
+          ],
+          outputPath,
+        ),
+        directory,
+      ),
+    ).toEqual({
+      status: 1,
+      stdout: '',
+      stderr:
+        'vrt-report: Could not process diff image: <temp>/assets/diff/desktop/ui/example-card.stories.tsx/shows-panel.png: Could not decode diff image: unrecognised content at end of stream\n',
       error: undefined,
       reportData: null,
     })

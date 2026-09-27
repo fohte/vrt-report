@@ -2,10 +2,17 @@ import { err, ok, Result } from 'neverthrow'
 
 type ChangeStatus = 'changed' | 'new' | 'deleted' | 'unchanged'
 
+export type DiffRegions = {
+  width: number
+  height: number
+  rectangles: Array<{ x: number; y: number; width: number; height: number }>
+}
+
 export type ReportVariant = {
   name: string
   status: ChangeStatus
   key: string
+  diffRegions?: DiffRegions | null
 }
 
 type ReportStory = {

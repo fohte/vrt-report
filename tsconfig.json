@@ -9,6 +9,7 @@
     "moduleResolution": "bundler",
     "noEmit": true,
     "paths": {
+      "#test-fixtures/*": ["./test/fixtures/*.ts"],
       "#*": ["./src/*.ts"]
     }
   }
