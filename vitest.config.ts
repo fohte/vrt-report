@@ -6,6 +6,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^#test-fixtures\/(.+)$/,
+        replacement: `${fileURLToPath(new URL('./test/fixtures/', import.meta.url))}$1.ts`,
+      },
+      {
         find: /^#(.+)$/,
         replacement: `${fileURLToPath(new URL('./src/', import.meta.url))}$1.ts`,
       },

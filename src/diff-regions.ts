@@ -91,10 +91,7 @@ const rowRuns = (
       break
     }
 
-    const previous = runs.at(-1)
-    if (previous !== undefined && x1 - previous.x2 - 1 <= mergeGap)
-      previous.x2 = x2
-    else runs.push({ x1, x2, y })
+    runs.push({ x1, x2, y })
   }
 
   return runs
@@ -109,7 +106,7 @@ const connectNearbyRuns = (
   for (const currentRun of current) {
     while (
       firstNearbyPrevious < previous.length &&
-      (previous[firstNearbyPrevious]?.x2 ?? 0) + mergeGap < currentRun.x1
+      (previous[firstNearbyPrevious]?.x2 ?? 0) + mergeGap + 1 < currentRun.x1
     ) {
       firstNearbyPrevious += 1
     }
@@ -117,7 +114,7 @@ const connectNearbyRuns = (
     for (
       let index = firstNearbyPrevious;
       index < previous.length &&
-      (previous[index]?.x1 ?? 0) <= currentRun.x2 + mergeGap;
+      (previous[index]?.x1 ?? 0) <= currentRun.x2 + mergeGap + 1;
       index += 1
     ) {
       const previousRun = previous[index]

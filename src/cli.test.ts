@@ -10,10 +10,11 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 
-import { PNG } from 'pngjs'
 import { afterEach, describe, expect, it } from 'vitest'
+
+import { createDiffImage } from '#test-fixtures/diff-image'
 
 const reportInput = {
   failedItems: ['desktop/ui/example-card.stories.tsx/shows-panel.png'],
@@ -22,20 +23,6 @@ const reportInput = {
     'tablet/legacy/removed-card.stories.tsx/renders-old-control.png',
   ],
   passedItems: ['mobile/ui/example-card.stories.tsx/shows-panel.png'],
-}
-
-const createDiffImage = (): Buffer => {
-  const image = new PNG({ width: 20, height: 16 })
-  for (const [x, y] of [
-    [2, 2],
-    [4, 4],
-    [17, 10],
-  ] as const) {
-    const offset = (y * image.width + x) * 4
-    image.data[offset] = 255
-    image.data[offset + 3] = 255
-  }
-  return PNG.sync.write(image)
 }
 
 let tempDirectory: string | undefined
@@ -333,6 +320,51 @@ Options:
       stdout: '',
       stderr:
         "vrt-report: Could not read report data: <temp>/missing.json: ENOENT: no such file or directory, open '<temp>/missing.json'\n",
+      error: undefined,
+      reportData: null,
+    })
+  })
+
+  it('includes the diff image path when decoding fails', () => {
+    const { directory, binPath } = installPackage()
+    const inputPath = join(directory, 'out.json')
+    const outputPath = join(directory, 'report.html')
+    const assetsDirectory = join(directory, 'assets')
+    const key = 'desktop/ui/example-card.stories.tsx/shows-panel.png'
+    const diffPath = join(assetsDirectory, 'diff', key)
+    mkdirSync(dirname(diffPath), { recursive: true })
+    writeFileSync(diffPath, Buffer.from('invalid PNG'))
+    writeFileSync(
+      inputPath,
+      JSON.stringify({
+        failedItems: [key],
+        newItems: [],
+        deletedItems: [],
+        passedItems: [],
+      }),
+    )
+
+    expect(
+      normalizeTempPath(
+        runCli(
+          binPath,
+          [
+            '--input',
+            inputPath,
+            '--assets-dir',
+            assetsDirectory,
+            '--output',
+            outputPath,
+          ],
+          outputPath,
+        ),
+        directory,
+      ),
+    ).toEqual({
+      status: 1,
+      stdout: '',
+      stderr:
+        'vrt-report: Could not process diff image: <temp>/assets/diff/desktop/ui/example-card.stories.tsx/shows-panel.png: Could not decode diff image: unrecognised content at end of stream\n',
       error: undefined,
       reportData: null,
     })
