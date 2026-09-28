@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/fohte/vrt-report/compare/v0.1.1...v0.1.2) (2026-09-28)
+
+
+### Bug Fixes
+
+* **report:** default to displaying stories with diffs ([#21](https://github.com/fohte/vrt-report/issues/21)) ([6ef2dde](https://github.com/fohte/vrt-report/commit/6ef2dde14141fa8c2497ae816472ccaf3d54ec88))
+
 ## [0.1.1](https://github.com/fohte/vrt-report/compare/v0.1.0...v0.1.1) (2026-09-26)
 
 
