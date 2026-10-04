@@ -136,21 +136,29 @@ export const generateReport = (
         .join('/')
       const clientScript = Promise.all([
         readFile(new URL('./report-client-tree.js', import.meta.url), 'utf8'),
+        readFile(
+          new URL('./report-client-comparison.js', import.meta.url),
+          'utf8',
+        ),
         readFile(new URL('./report-client.js', import.meta.url), 'utf8'),
-      ]).then(([clientTreeScript, clientScript]) =>
-        [clientTreeScript, clientScript].join('\n'),
-      )
+      ]).then((clientScripts) => clientScripts.join('\n'))
+      const combinedStyles = Promise.all([
+        readFile(new URL('./report-styles.css', import.meta.url), 'utf8'),
+        readFile(
+          new URL('./report-detail-styles.css', import.meta.url),
+          'utf8',
+        ),
+        readFile(new URL('./report-responsive.css', import.meta.url), 'utf8'),
+      ]).then((styles) => styles.join('\n'))
 
       return ResultAsync.fromPromise(
         Promise.all([
           readFile(new URL('./report-template.html', import.meta.url), 'utf8'),
           clientScript,
-          readFile(new URL('./report-styles.css', import.meta.url), 'utf8'),
-          readFile(new URL('./report-responsive.css', import.meta.url), 'utf8'),
+          combinedStyles,
         ]),
         (cause) => new ReportAssetError(cause),
-      ).andThen(([template, clientScript, styles, responsiveStyles]) => {
-        const combinedStyles = [styles, responsiveStyles].join('\n')
+      ).andThen(([template, clientScript, combinedStyles]) => {
         const html = renderReport(
           model,
           {

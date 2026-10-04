@@ -12,6 +12,7 @@ const template = readFileSync(
 )
 const styles = [
   readFileSync(new URL('./report-styles.css', import.meta.url), 'utf8'),
+  readFileSync(new URL('./report-detail-styles.css', import.meta.url), 'utf8'),
   readFileSync(new URL('./report-responsive.css', import.meta.url), 'utf8'),
 ].join('\n')
 const clientScript = readFileSync(
