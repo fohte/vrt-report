@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.2](https://github.com/fohte/vrt-report/compare/v0.1.1...v0.1.2) (2026-10-04)
+
+
+### Features
+
+* **report:** include bounding boxes of diff regions in report data ([#23](https://github.com/fohte/vrt-report/issues/23)) ([7e2fcb6](https://github.com/fohte/vrt-report/commit/7e2fcb60ac77683ddedd719277a9b25eca6c82e6))
+* **report:** support switching comparison modes in detail view ([#24](https://github.com/fohte/vrt-report/issues/24)) ([f5c4ea9](https://github.com/fohte/vrt-report/commit/f5c4ea9e0c8611d56af1f7fb0641129dde1af34f))
+
+
+### Bug Fixes
+
+* **report:** default to displaying stories with diffs ([#21](https://github.com/fohte/vrt-report/issues/21)) ([6ef2dde](https://github.com/fohte/vrt-report/commit/6ef2dde14141fa8c2497ae816472ccaf3d54ec88))
+
 ## [0.1.1](https://github.com/fohte/vrt-report/compare/v0.1.0...v0.1.1) (2026-09-26)
 
 
