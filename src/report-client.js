@@ -16,9 +16,21 @@
   const dialogVariant = document.getElementById('detail-variant')
   const dialogContent = document.getElementById('detail-content')
   const detailModes = document.getElementById('detail-modes')
+  const detailPrevious = document.getElementById('detail-previous')
+  const detailNext = document.getElementById('detail-next')
+  const detailPosition = document.getElementById('detail-position')
 
   const titleCase = (status) => status.charAt(0).toUpperCase() + status.slice(1)
   const storyLabel = (story) => story.displayName ?? story.storyId
+  const detailId = (story, variant) => story.id + '/' + variant.name
+  const detailEntries = new Map(
+    report.stories.flatMap((story) =>
+      story.variants.map((variant) => [
+        detailId(story, variant),
+        { story, variant },
+      ]),
+    ),
+  )
   const storyStatuses = (story) => [
     ...new Set(
       story.variants
@@ -129,13 +141,141 @@
     )
   }
 
-  function openDetail(story, variant) {
+  function currentHistoryState() {
+    const current = window.history.state
+    return current !== null &&
+      typeof current === 'object' &&
+      !Array.isArray(current)
+      ? { ...current }
+      : {}
+  }
+
+  function updateDetailUrl(id, method) {
+    const url = new URL(window.location.href)
+    url.searchParams.set('id', id)
+    const historyState = currentHistoryState()
+    historyState.vrtReportDetailEntry = true
+    historyState.vrtReportDetailId = id
+    window.history[method + 'State'](historyState, '', url)
+  }
+
+  function clearDetailUrl() {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('id')
+    const historyState = currentHistoryState()
+    delete historyState.vrtReportDetailEntry
+    delete historyState.vrtReportDetailId
+    window.history.replaceState(historyState, '', url)
+  }
+
+  function visibleDetailEntries() {
+    return Array.from(storyList.querySelectorAll('[data-detail-id]'))
+      .map((section) => detailEntries.get(section.dataset.detailId))
+      .filter((entry) => entry !== undefined)
+  }
+
+  function currentDetailPosition() {
+    if (detailSelection === null) return undefined
+    const entries = visibleDetailEntries()
+    const selectedId = detailId(detailSelection.story, detailSelection.variant)
+    const index = entries.findIndex(
+      (entry) => detailId(entry.story, entry.variant) === selectedId,
+    )
+    return { entries, index, navigable: entries.length >= 2 && index >= 0 }
+  }
+
+  function updateDetailNavigation() {
+    const position = currentDetailPosition()
+    if (position === undefined) return
+    detailPrevious.disabled = !position.navigable
+    detailNext.disabled = !position.navigable
+    detailPosition.textContent =
+      position.index < 0
+        ? '0 / ' + position.entries.length
+        : position.index + 1 + ' / ' + position.entries.length
+  }
+
+  function showDetail(story, variant) {
     detailSelection = { story, variant }
     dialogTitle.textContent = story.component + ' / ' + storyLabel(story)
     dialogVariant.textContent = variant.name
     detailModes.hidden = variant.status !== 'changed'
     renderDetail()
-    dialog.showModal()
+    updateDetailNavigation()
+    if (!dialog.open) dialog.showModal()
+  }
+
+  function openDetail(story, variant) {
+    const id = detailId(story, variant)
+    updateDetailUrl(id, 'push')
+    showDetail(story, variant)
+  }
+
+  function navigateDetail(direction) {
+    const position = currentDetailPosition()
+    if (position === undefined || !position.navigable) return
+    const nextIndex =
+      (position.index + direction + position.entries.length) %
+      position.entries.length
+    const next = position.entries[nextIndex]
+    if (next === undefined) return
+    updateDetailUrl(detailId(next.story, next.variant), 'replace')
+    showDetail(next.story, next.variant)
+  }
+
+  function closeDetailFromLocation() {
+    detailSelection = null
+    if (dialog.open) dialog.close()
+  }
+
+  function closeDetail() {
+    if (!dialog.open || detailSelection === null) return
+    const id = detailId(detailSelection.story, detailSelection.variant)
+    const historyState = currentHistoryState()
+    if (
+      historyState.vrtReportDetailEntry === true &&
+      historyState.vrtReportDetailId === id &&
+      new URL(window.location.href).searchParams.get('id') === id
+    ) {
+      window.history.back()
+      return
+    }
+    clearDetailUrl()
+    closeDetailFromLocation()
+  }
+
+  function detailEntryFromLocation() {
+    const id = new URL(window.location.href).searchParams.get('id')
+    return id === null ? undefined : detailEntries.get(id)
+  }
+
+  function syncDetailFromLocation() {
+    const entry = detailEntryFromLocation()
+    if (entry === undefined) {
+      closeDetailFromLocation()
+      return
+    }
+    showDetail(entry.story, entry.variant)
+  }
+
+  function initializeDetailFromLocation() {
+    const url = new URL(window.location.href)
+    const id = url.searchParams.get('id')
+    if (id === null) return
+    const entry = detailEntries.get(id)
+    if (entry === undefined) {
+      clearDetailUrl()
+      return
+    }
+    const historyState = currentHistoryState()
+    if (
+      historyState.vrtReportDetailEntry !== true ||
+      historyState.vrtReportDetailId !== id
+    ) {
+      clearDetailUrl()
+      updateDetailUrl(id, 'push')
+    }
+    showDetail(entry.story, entry.variant)
   }
 
   function createStory(story) {
@@ -162,8 +302,13 @@
     )
     const initialVariants =
       changedVariants.length > 0 ? changedVariants : unchanged
+    const createListVariant = (variant) => {
+      const section = createVariant(variant, story, false)
+      section.dataset.detailId = detailId(story, variant)
+      return section
+    }
     for (const variant of initialVariants)
-      variants.append(createVariant(variant, story, false))
+      variants.append(createListVariant(variant))
     if (changedVariants.length > 0 && unchanged.length > 0) {
       const toggle = document.createElement('button')
       toggle.type = 'button'
@@ -181,7 +326,7 @@
             .forEach((item) => item.remove())
         } else {
           for (const variant of unchanged) {
-            const section = createVariant(variant, story, false)
+            const section = createListVariant(variant)
             section.dataset.unchanged = 'true'
             variants.append(section)
           }
@@ -202,9 +347,11 @@
       empty.className = 'empty-state'
       empty.textContent = 'No stories match this filter.'
       storyList.append(empty)
+      updateDetailNavigation()
       return
     }
     for (const story of stories) storyList.append(createStory(story))
+    updateDetailNavigation()
   }
 
   function render() {
@@ -264,11 +411,42 @@
     state.query = search.value.trim().toLowerCase()
     render()
   })
-  document
-    .getElementById('detail-close')
-    .addEventListener('click', () => dialog.close())
+  document.getElementById('detail-close').addEventListener('click', closeDetail)
   dialog.addEventListener('click', (event) => {
-    if (event.target === dialog) dialog.close()
+    if (event.target === dialog) closeDetail()
+  })
+  dialog.addEventListener('cancel', (event) => {
+    event.preventDefault()
+    closeDetail()
+  })
+  detailPrevious.addEventListener('click', () => navigateDetail(-1))
+  detailNext.addEventListener('click', () => navigateDetail(1))
+  window.addEventListener('popstate', syncDetailFromLocation)
+  document.addEventListener('keydown', (event) => {
+    if (
+      !dialog.open ||
+      event.defaultPrevented ||
+      event.isComposing ||
+      event.shiftKey ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey
+    )
+      return
+    const isEditing = (target) =>
+      target instanceof Element &&
+      target.closest('input, textarea, select, [contenteditable="true"]') !==
+        null
+    if (isEditing(event.target) || isEditing(document.activeElement)) return
+    const key = event.key.toLowerCase()
+    if (key === 'arrowleft' || key === 'h') {
+      event.preventDefault()
+      navigateDetail(-1)
+    } else if (key === 'arrowright' || key === 'l') {
+      event.preventDefault()
+      navigateDetail(1)
+    }
   })
   render()
+  initializeDetailFromLocation()
 })()
