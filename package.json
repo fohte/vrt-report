@@ -39,7 +39,8 @@
     "test:unit": "pnpm build && vitest run"
   },
   "dependencies": {
-    "neverthrow": "8.2.0"
+    "neverthrow": "8.2.0",
+    "pngjs": "7.0.0"
   },
   "peerDependencies": {
     "storybook": ">=9.0.0"
@@ -56,6 +57,7 @@
     "@tsconfig/node-lts": "24.0.1",
     "@tsconfig/strictest": "2.0.8",
     "@types/node": "24.13.6",
+    "@types/pngjs": "6.0.5",
     "concurrently": "10.0.5",
     "eslint": "10.11.0",
     "knip": "6.37.0",

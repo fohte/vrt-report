@@ -53,11 +53,14 @@ export const renderReport = (
     : encodePath(baselineLocation)
   const stories = model.stories.map((story) => ({
     ...story,
-    variants: story.variants.map(({ key, ...variant }) => {
+    variants: story.variants.map(({ key, diffRegions, ...variant }) => {
       const actual = imageUrl(assetsPrefix, 'actual', key)
       const baseline = imageUrl(baselineDirectory, '', key)
       return {
         ...variant,
+        ...(variant.status === 'changed'
+          ? { diffRegions: diffRegions ?? null }
+          : {}),
         before: variant.status === 'new' ? null : baseline,
         after:
           variant.status === 'deleted'
