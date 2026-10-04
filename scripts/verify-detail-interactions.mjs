@@ -177,6 +177,83 @@ const verifyToggleControl = (page) =>
     return ok(undefined)
   })
 
+const verifyMarkersAcrossDetailModes = (page) =>
+  runCheck('diff markers across detail modes', async () => {
+    const result = await openSliderDetail(page, 'slide')
+    if (result.isErr()) return result
+    const dialog = result.value
+    const markerToggle = page.locator('#detail-marker-toggle')
+    if ((await markerToggle.getAttribute('aria-pressed')) === 'true')
+      await markerToggle.click()
+    await markerToggle.click()
+
+    const expectedRectangleCount = await page.evaluate(() => {
+      const report = JSON.parse(
+        document.getElementById('report-data').textContent,
+      )
+      const variant = report.stories
+        .flatMap((story) => story.variants)
+        .find((item) => item.status === 'changed')
+      return variant?.diffRegions?.rectangles.length ?? 0
+    })
+    const modes = [
+      ['slide', 1],
+      ['2up', 2],
+      ['blend', 1],
+      ['toggle', 1],
+    ]
+    const actual = []
+    for (const [mode, overlayCount] of modes) {
+      await page.locator(`#detail-modes [data-mode="${mode}"]`).click()
+      actual.push({
+        mode,
+        pressed: await markerToggle.getAttribute('aria-pressed'),
+        overlayCount: await dialog.locator('.diff-markers').count(),
+        rectangleCount: await dialog.locator('.diff-markers rect').count(),
+      })
+    }
+    const expected = modes.map(([mode, overlayCount]) => ({
+      mode,
+      pressed: 'true',
+      overlayCount,
+      rectangleCount: expectedRectangleCount * overlayCount,
+    }))
+    await closeDetail(page)
+    if (JSON.stringify(actual) !== JSON.stringify(expected))
+      return err(
+        new Error(
+          `Markers were not rendered in every detail mode: ${JSON.stringify(actual)}`,
+        ),
+      )
+    return ok(undefined)
+  })
+
+const verifyMarkersKeyboardShortcut = (page) =>
+  runCheck('diff markers keyboard shortcut', async () => {
+    const result = await openSliderDetail(page, 'slide')
+    if (result.isErr()) return result
+    const dialog = result.value
+    const markerToggle = page.locator('#detail-marker-toggle')
+    const initial = await markerToggle.getAttribute('aria-pressed')
+    await page.keyboard.press('m')
+    const actual = {
+      pressed: await markerToggle.getAttribute('aria-pressed'),
+      overlayCount: await dialog.locator('.diff-markers').count(),
+    }
+    await closeDetail(page)
+    const expected = {
+      pressed: initial === 'true' ? 'false' : 'true',
+      overlayCount: initial === 'true' ? 0 : 1,
+    }
+    if (JSON.stringify(actual) !== JSON.stringify(expected))
+      return err(
+        new Error(
+          `The m shortcut did not toggle markers: ${JSON.stringify(actual)}`,
+        ),
+      )
+    return ok(undefined)
+  })
+
 const verifyDetailImageDoesNotReopenDialog = (page) =>
   runCheck('detail image click guard', async () => {
     const result = await openSliderDetail(page, 'diff')
@@ -213,6 +290,8 @@ export const verifyDetailInteractions = async (page) => {
     verifyDetailModeIsRemembered,
     verifyBlendOpacity,
     verifyToggleControl,
+    verifyMarkersAcrossDetailModes,
+    verifyMarkersKeyboardShortcut,
     verifyDetailImageDoesNotReopenDialog,
     restoreSlideForCapture,
   ]

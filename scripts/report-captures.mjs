@@ -31,6 +31,13 @@ export const reportCaptures = [
   },
   {
     report: 'mixed',
+    filename: 'detail-markers.png',
+    viewport: { width: 1440, height: 960 },
+    detailView: '2up',
+    detailMarkers: true,
+  },
+  {
+    report: 'mixed',
     filename: 'detail-blend.png',
     viewport: { width: 1440, height: 960 },
     detailView: 'blend',

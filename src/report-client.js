@@ -5,6 +5,7 @@
     filter: 'changes',
     view: 'pair',
     detailView: 'slide',
+    markersVisible: false,
     selection: null,
   }
   const tree = document.getElementById('story-tree')
@@ -16,6 +17,7 @@
   const dialogVariant = document.getElementById('detail-variant')
   const dialogContent = document.getElementById('detail-content')
   const detailModes = document.getElementById('detail-modes')
+  const markerToggle = document.getElementById('detail-marker-toggle')
 
   const titleCase = (status) => status.charAt(0).toUpperCase() + status.slice(1)
   const storyLabel = (story) => story.displayName ?? story.storyId
@@ -119,6 +121,7 @@
 
   function renderDetail() {
     if (detailSelection === null) return
+    markerToggle.setAttribute('aria-pressed', String(state.markersVisible))
     for (const button of detailModes.querySelectorAll('.detail-mode'))
       button.setAttribute(
         'aria-pressed',
@@ -129,11 +132,43 @@
     )
   }
 
+  function toggleMarkers() {
+    state.markersVisible = !state.markersVisible
+    renderDetail()
+  }
+
+  markerToggle.addEventListener('click', toggleMarkers)
+  dialog.addEventListener('keydown', (event) => {
+    if (
+      event.defaultPrevented ||
+      event.key.toLowerCase() !== 'm' ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.altKey ||
+      markerToggle.hidden
+    )
+      return
+    if (
+      event.target instanceof Element &&
+      event.target.closest(
+        'input:not([type="range"]):not([type="checkbox"]), textarea, select, [contenteditable="true"]',
+      )
+    )
+      return
+    event.preventDefault()
+    toggleMarkers()
+  })
+
   function openDetail(story, variant) {
     detailSelection = { story, variant }
     dialogTitle.textContent = story.component + ' / ' + storyLabel(story)
     dialogVariant.textContent = variant.name
     detailModes.hidden = variant.status !== 'changed'
+    markerToggle.hidden =
+      variant.status !== 'changed' ||
+      variant.diffRegions?.rectangles.length === 0 ||
+      variant.diffRegions === null ||
+      variant.diffRegions === undefined
     renderDetail()
     dialog.showModal()
   }

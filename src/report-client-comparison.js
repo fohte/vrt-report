@@ -28,6 +28,43 @@ const createReportComparison = ({
     }
   }
 
+  function createDiffMarkers(variant, detail) {
+    const regions = variant.diffRegions
+    if (
+      !detail ||
+      !state.markersVisible ||
+      variant.status !== 'changed' ||
+      !regions ||
+      regions.width <= 0 ||
+      regions.height <= 0 ||
+      regions.rectangles.length === 0
+    )
+      return null
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svg.classList.add('diff-markers')
+    svg.setAttribute('viewBox', '0 0 ' + regions.width + ' ' + regions.height)
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+    svg.setAttribute('aria-hidden', 'true')
+    for (const rectangle of regions.rectangles) {
+      const marker = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'rect',
+      )
+      marker.setAttribute('x', String(rectangle.x))
+      marker.setAttribute('y', String(rectangle.y))
+      marker.setAttribute('width', String(rectangle.width))
+      marker.setAttribute('height', String(rectangle.height))
+      svg.append(marker)
+    }
+    return svg
+  }
+
+  function appendDiffMarkers(container, variant, detail) {
+    const markers = createDiffMarkers(variant, detail)
+    if (markers) container.append(markers)
+  }
+
   function createPane(label, source, story, variant, detail) {
     const pane = document.createElement('div')
     pane.className = 'pane'
@@ -69,6 +106,7 @@ const createReportComparison = ({
     )
     image.src = source
     button.append(image, fallback.placeholder)
+    appendDiffMarkers(button, variant, detail)
     if (!detail)
       button.addEventListener('click', () => openDetail(story, variant))
     pane.append(button)
@@ -156,11 +194,13 @@ const createReportComparison = ({
     const afterLabel = document.createElement('span')
     afterLabel.className = 'slider-label after'
     afterLabel.textContent = 'After'
-    slider.append(before, after, beforeLabel, afterLabel, input)
+    slider.append(before, after)
+    appendDiffMarkers(slider, variant, detail)
+    slider.append(beforeLabel, afterLabel, input)
     return slider
   }
 
-  function createBlend(variant, story) {
+  function createBlend(variant, story, detail) {
     const blend = document.createElement('div')
     blend.className = 'blend'
     const before = document.createElement('img')
@@ -199,14 +239,13 @@ const createReportComparison = ({
       beforeFallback.placeholder,
       after,
       afterFallback.placeholder,
-      beforeLabel,
-      afterLabel,
-      input,
     )
+    appendDiffMarkers(blend, variant, detail)
+    blend.append(beforeLabel, afterLabel, input)
     return blend
   }
 
-  function createToggle(variant, story) {
+  function createToggle(variant, story, detail) {
     const toggle = document.createElement('div')
     toggle.className = 'toggle'
     const before = document.createElement('img')
@@ -239,8 +278,9 @@ const createReportComparison = ({
       beforeFallback.placeholder,
       after,
       afterFallback.placeholder,
-      control,
     )
+    appendDiffMarkers(toggle, variant, detail)
+    toggle.append(control)
     return toggle
   }
 
@@ -270,10 +310,14 @@ const createReportComparison = ({
       )
     }
     if (detail && state.detailView === 'blend') {
-      return wrapComparison(createContentPane(createBlend(variant, story)))
+      return wrapComparison(
+        createContentPane(createBlend(variant, story, detail)),
+      )
     }
     if (detail && state.detailView === 'toggle') {
-      return wrapComparison(createContentPane(createToggle(variant, story)))
+      return wrapComparison(
+        createContentPane(createToggle(variant, story, detail)),
+      )
     }
     if (!detail && state.view === 'diff') {
       return wrapComparison(
