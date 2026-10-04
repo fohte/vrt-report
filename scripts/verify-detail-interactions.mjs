@@ -12,8 +12,30 @@ const runCheck = async (name, action) => {
 
 const closeDetail = async (page) => {
   const dialog = page.locator('#detail-dialog')
-  if (await dialog.isVisible()) await page.locator('#detail-close').click()
+  if (await dialog.isVisible()) {
+    await page.locator('#detail-close').click()
+    await dialog.waitFor({ state: 'hidden' })
+    await page.waitForFunction(
+      () => !new URL(window.location.href).searchParams.has('id'),
+    )
+  }
 }
+
+const visibleDetailIds = (page) =>
+  page
+    .locator('#story-list .variant[data-detail-id]')
+    .evaluateAll((sections) =>
+      sections.map((section) => section.dataset.detailId),
+    )
+
+const currentDetailId = (page) => new URL(page.url()).searchParams.get('id')
+
+const outputMatches = (name, actual, expected) =>
+  JSON.stringify(actual) === JSON.stringify(expected)
+    ? ok(undefined)
+    : err(
+        new Error(`${name} mismatch: ${JSON.stringify({ expected, actual })}`),
+      )
 
 const openSliderDetail = async (page, mode) => {
   await closeDetail(page)
@@ -96,6 +118,262 @@ const verifyDetailDefaultsToSlide = (page) =>
     if (!isSelected) return err(new Error('The detail mode is not Slide.'))
     return ok(undefined)
   })
+
+const verifyDetailNavigationFollowsVisibleOrder = (page) =>
+  runCheck('detail navigation order and keyboard shortcuts', async () => {
+    const result = await openSliderDetail(page, 'slide')
+    if (result.isErr()) return result
+    const ids = await visibleDetailIds(page)
+    const initialId = currentDetailId(page)
+    const initialIndex = ids.indexOf(initialId)
+    if (initialIndex < 0 || ids.length < 2)
+      return err(
+        new Error('The opened image is missing from the visible list.'),
+      )
+
+    const nextId = ids[(initialIndex + 1) % ids.length]
+    const previousId = ids[(initialIndex - 1 + ids.length) % ids.length]
+    await page.getByRole('button', { name: 'Next image' }).click()
+    const afterNextButton = currentDetailId(page)
+    await page.getByRole('button', { name: 'Previous image' }).click()
+    const afterPreviousButton = currentDetailId(page)
+    await page.keyboard.press('ArrowRight')
+    const afterArrowRight = currentDetailId(page)
+    await page.keyboard.press('ArrowLeft')
+    const afterArrowLeft = currentDetailId(page)
+    await page.keyboard.press('h')
+    const afterPreviousShortcut = currentDetailId(page)
+    await page.keyboard.press('l')
+    const afterNextShortcut = currentDetailId(page)
+    const actual = {
+      afterNextButton,
+      afterPreviousButton,
+      afterArrowRight,
+      afterArrowLeft,
+      afterPreviousShortcut,
+      afterNextShortcut,
+    }
+    const expected = {
+      afterNextButton: nextId,
+      afterPreviousButton: initialId,
+      afterArrowRight: nextId,
+      afterArrowLeft: initialId,
+      afterPreviousShortcut: previousId,
+      afterNextShortcut: initialId,
+    }
+    await closeDetail(page)
+    return outputMatches('detail navigation', actual, expected)
+  })
+
+const verifyDetailUrlHistoryAndDirectLink = (page) =>
+  runCheck('detail URL, browser history, and direct link', async () => {
+    const result = await openSliderDetail(page, 'slide')
+    if (result.isErr()) return result
+    const ids = await visibleDetailIds(page)
+    const initialId = currentDetailId(page)
+    const initialIndex = ids.indexOf(initialId)
+    if (initialIndex < 0 || ids.length < 2)
+      return err(
+        new Error('The opened image is missing from the visible list.'),
+      )
+
+    const nextId = ids[(initialIndex + 1) % ids.length]
+    await page.getByRole('button', { name: 'Next image' }).click()
+    const afterNext = currentDetailId(page)
+    await page.goBack()
+    await page.waitForFunction(
+      () => !new URL(window.location.href).searchParams.has('id'),
+    )
+    const afterBack = {
+      id: currentDetailId(page),
+      open: await page.locator('#detail-dialog').isVisible(),
+    }
+    await page.goForward()
+    await page.waitForFunction(
+      (id) => new URL(window.location.href).searchParams.get('id') === id,
+      nextId,
+    )
+    const afterForward = {
+      id: currentDetailId(page),
+      open: await page.locator('#detail-dialog').isVisible(),
+    }
+    await page.goBack()
+    await page.waitForFunction(
+      () => !new URL(window.location.href).searchParams.has('id'),
+    )
+
+    const directUrl = new URL(page.url())
+    directUrl.searchParams.set('id', nextId)
+    const directPage = await page.context().newPage()
+    await directPage.goto(directUrl.href, { waitUntil: 'networkidle' })
+    await directPage.waitForFunction(
+      () => document.querySelector('#detail-dialog')?.open === true,
+    )
+    const directLink = {
+      id: currentDetailId(directPage),
+      open: await directPage.locator('#detail-dialog').isVisible(),
+    }
+    await closeDetail(directPage)
+    const afterClose = {
+      id: currentDetailId(directPage),
+      open: await directPage.locator('#detail-dialog').isVisible(),
+    }
+    await directPage.close()
+
+    const unknownUrl = new URL(directUrl)
+    unknownUrl.searchParams.set('id', 'missing-image')
+    const unknownIdPage = await page.context().newPage()
+    await unknownIdPage.goto(unknownUrl.href, { waitUntil: 'networkidle' })
+    await unknownIdPage.waitForFunction(
+      () => !new URL(window.location.href).searchParams.has('id'),
+    )
+    const unknownId = {
+      id: currentDetailId(unknownIdPage),
+      open: await unknownIdPage.locator('#detail-dialog').isVisible(),
+    }
+    await unknownIdPage.close()
+
+    return outputMatches(
+      'detail URL and history',
+      {
+        initialId,
+        afterNext,
+        afterBack,
+        afterForward,
+        directLink,
+        afterClose,
+        unknownId,
+      },
+      {
+        initialId,
+        afterNext: nextId,
+        afterBack: { id: null, open: false },
+        afterForward: { id: nextId, open: true },
+        directLink: { id: nextId, open: true },
+        afterClose: { id: null, open: false },
+        unknownId: { id: null, open: false },
+      },
+    )
+  })
+
+const verifySearchKeysDoNotNavigate = (page) =>
+  runCheck('search field keyboard guard', async () => {
+    const result = await openSliderDetail(page, 'slide')
+    if (result.isErr()) return result
+    const initialId = currentDetailId(page)
+    await page.evaluate(() => {
+      const search = document.getElementById('story-search')
+      for (const key of ['ArrowLeft', 'ArrowRight', 'h', 'l'])
+        search.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key,
+            bubbles: true,
+            cancelable: true,
+          }),
+        )
+    })
+    const actual = { initialId, afterSearchKeys: currentDetailId(page) }
+    await closeDetail(page)
+    return outputMatches('search field keyboard guard', actual, {
+      initialId,
+      afterSearchKeys: initialId,
+    })
+  })
+
+const inspectFirstVisibleNavigation = async (page) => {
+  const ids = await visibleDetailIds(page)
+  if (ids.length === 0)
+    return err(new Error('The filtered list does not contain an image.'))
+  await page
+    .locator('#story-list .variant[data-detail-id] .image-button')
+    .first()
+    .click()
+  const dialog = page.locator('#detail-dialog')
+  await dialog.waitFor({ state: 'visible' })
+  const firstId = currentDetailId(page)
+  const firstPosition = await page.locator('#detail-position').textContent()
+  const nextDisabled = await page
+    .getByRole('button', { name: 'Next image' })
+    .isDisabled()
+  if (!nextDisabled)
+    await page.getByRole('button', { name: 'Next image' }).click()
+  const nextId = currentDetailId(page)
+  await closeDetail(page)
+  return ok({
+    actual: { firstId, firstPosition, nextDisabled, nextId },
+    expected: {
+      firstId: ids[0],
+      firstPosition: '1 / ' + ids.length,
+      nextDisabled: ids.length < 2,
+      nextId: ids[1] ?? ids[0],
+    },
+  })
+}
+
+const verifyDetailNavigationUsesCurrentList = (page) =>
+  runCheck(
+    'detail navigation follows filter, search, and tree selection',
+    async () => {
+      await closeDetail(page)
+      await page.locator('#story-tree .tree-root').click()
+      await page.locator('#filters .filter.changes').click()
+      await page.getByRole('button', { name: 'Before + After' }).click()
+      const allIds = await visibleDetailIds(page)
+
+      await page.locator('#filters .filter.new').click()
+      const filteredIds = await visibleDetailIds(page)
+      const filtered = await inspectFirstVisibleNavigation(page)
+      if (filtered.isErr()) return filtered
+
+      await page.locator('#filters .filter.changes').click()
+      const component = await page
+        .locator('#story-list .story-component')
+        .first()
+        .textContent()
+      if (component === null)
+        return err(new Error('The visible list does not contain a component.'))
+      await page.locator('#story-search').fill(component)
+      const searchedIds = await visibleDetailIds(page)
+      const searched = await inspectFirstVisibleNavigation(page)
+      if (searched.isErr()) return searched
+
+      await page.locator('#story-search').fill('')
+      await page.locator('#story-tree .tree-root').click()
+      const treeComponent = page.locator('#story-tree .tree-component').first()
+      await treeComponent.click()
+      const treeLabel = await treeComponent.locator('span').nth(1).textContent()
+      if (treeLabel === null)
+        return err(new Error('The selected tree component has no label.'))
+      const treeSelected = await treeComponent.getAttribute('aria-pressed')
+      const tree = await inspectFirstVisibleNavigation(page)
+      if (tree.isErr()) return tree
+      const renderedComponents = await page
+        .locator('#story-list .story-component')
+        .evaluateAll((items) => items.map((item) => item.textContent))
+
+      const actual = {
+        filterReducedList: allIds.length > filteredIds.length,
+        filteredNavigation: filtered.value.actual,
+        searchReducedList: allIds.length > searchedIds.length,
+        searchNavigation: searched.value.actual,
+        treeNavigation: tree.value.actual,
+        treeSelected,
+        renderedComponents,
+      }
+      const expected = {
+        filterReducedList: true,
+        filteredNavigation: filtered.value.expected,
+        searchReducedList: true,
+        searchNavigation: searched.value.expected,
+        treeNavigation: tree.value.expected,
+        treeSelected: 'true',
+        renderedComponents: [treeLabel],
+      }
+      await page.locator('#story-tree .tree-root').click()
+      await page.locator('#filters .filter.changes').click()
+      return outputMatches('visible list navigation', actual, expected)
+    },
+  )
 
 const verifyDetailSliderKeyboard = (page) =>
   runCheck('detail slider keyboard', async () => {
@@ -442,6 +720,10 @@ const restoreSlideForCapture = (page) =>
 export const verifyDetailInteractions = async (page) => {
   const checks = [
     verifyDetailDefaultsToSlide,
+    verifyDetailNavigationFollowsVisibleOrder,
+    verifyDetailUrlHistoryAndDirectLink,
+    verifySearchKeysDoNotNavigate,
+    verifyDetailNavigationUsesCurrentList,
     verifyListSliderKeyboard,
     verifyListSliderDrag,
     verifyDetailOpensOnClick,

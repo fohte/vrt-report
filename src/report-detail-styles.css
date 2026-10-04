@@ -36,6 +36,33 @@ dialog::backdrop {
   flex-wrap: wrap;
   gap: 4px;
 }
+.detail-navigation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.detail-navigation-button {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel);
+  color: var(--fg);
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.detail-navigation-button:disabled {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.5;
+}
+.detail-position {
+  min-width: 44px;
+  color: var(--muted);
+  font:
+    12px ui-monospace,
+    monospace;
+  text-align: center;
+}
 .detail-mode {
   border: 1px solid var(--line);
   border-radius: 5px;
