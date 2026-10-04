@@ -148,7 +148,7 @@ const createReportTree = ({
           ? item.dataset.selectionKind === 'all'
           : item.dataset.selectionKind === state.selection.kind &&
             item.dataset.selectionPath === state.selection.path
-      if (item instanceof HTMLSummaryElement)
+      if (item.tagName === 'SUMMARY')
         item.setAttribute('aria-current', String(selected))
       else item.setAttribute('aria-pressed', String(selected))
     }
