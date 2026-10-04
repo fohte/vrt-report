@@ -29,18 +29,10 @@ const createReportComparison = ({
   }
 
   function createDiffMarkers(variant, detail) {
-    const regions = variant.diffRegions
-    if (
-      !detail ||
-      !state.markersVisible ||
-      variant.status !== 'changed' ||
-      !regions ||
-      regions.width <= 0 ||
-      regions.height <= 0 ||
-      regions.rectangles.length === 0
-    )
+    if (!detail || !state.markersVisible || !hasDiffMarkers(variant))
       return null
 
+    const regions = variant.diffRegions
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     svg.classList.add('diff-markers')
     svg.setAttribute('viewBox', '0 0 ' + regions.width + ' ' + regions.height)
@@ -58,6 +50,18 @@ const createReportComparison = ({
       svg.append(marker)
     }
     return svg
+  }
+
+  function hasDiffMarkers(variant) {
+    const regions = variant.diffRegions
+    return (
+      variant.status === 'changed' &&
+      regions !== null &&
+      regions !== undefined &&
+      regions.width > 0 &&
+      regions.height > 0 &&
+      regions.rectangles.length > 0
+    )
   }
 
   function appendDiffMarkers(container, variant, detail) {
@@ -367,5 +371,5 @@ const createReportComparison = ({
     return section
   }
 
-  return { createVariant }
+  return { createVariant, hasDiffMarkers }
 }

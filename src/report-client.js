@@ -91,7 +91,7 @@
     storyStatuses,
   })
 
-  const { createVariant } = createReportComparison({
+  const { createVariant, hasDiffMarkers } = createReportComparison({
     state,
     storyLabel,
     titleCase,
@@ -164,11 +164,7 @@
     dialogTitle.textContent = story.component + ' / ' + storyLabel(story)
     dialogVariant.textContent = variant.name
     detailModes.hidden = variant.status !== 'changed'
-    markerToggle.hidden =
-      variant.status !== 'changed' ||
-      variant.diffRegions?.rectangles.length === 0 ||
-      variant.diffRegions === null ||
-      variant.diffRegions === undefined
+    markerToggle.hidden = !hasDiffMarkers(variant)
     renderDetail()
     dialog.showModal()
   }

@@ -56,6 +56,10 @@ dialog::backdrop {
 .detail-content .toggle {
   position: relative;
 }
+.detail-content .image-button .diff-markers {
+  max-height: 72vh;
+  margin: auto;
+}
 .diff-markers {
   position: absolute;
   z-index: 1;
