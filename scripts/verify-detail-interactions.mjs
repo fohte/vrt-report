@@ -220,9 +220,30 @@ const verifyDetailUrlHistoryAndDirectLink = (page) =>
     }
     await directPage.close()
 
+    const unknownUrl = new URL(directUrl)
+    unknownUrl.searchParams.set('id', 'missing-image')
+    const unknownIdPage = await page.context().newPage()
+    await unknownIdPage.goto(unknownUrl.href, { waitUntil: 'networkidle' })
+    await unknownIdPage.waitForFunction(
+      () => !new URL(window.location.href).searchParams.has('id'),
+    )
+    const unknownId = {
+      id: currentDetailId(unknownIdPage),
+      open: await unknownIdPage.locator('#detail-dialog').isVisible(),
+    }
+    await unknownIdPage.close()
+
     return outputMatches(
       'detail URL and history',
-      { initialId, afterNext, afterBack, afterForward, directLink, afterClose },
+      {
+        initialId,
+        afterNext,
+        afterBack,
+        afterForward,
+        directLink,
+        afterClose,
+        unknownId,
+      },
       {
         initialId,
         afterNext: nextId,
@@ -230,6 +251,7 @@ const verifyDetailUrlHistoryAndDirectLink = (page) =>
         afterForward: { id: nextId, open: true },
         directLink: { id: nextId, open: true },
         afterClose: { id: null, open: false },
+        unknownId: { id: null, open: false },
       },
     )
   })

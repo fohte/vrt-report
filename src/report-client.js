@@ -159,23 +159,40 @@
     window.history[method + 'State'](historyState, '', url)
   }
 
+  function clearDetailUrl() {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('id')
+    const historyState = currentHistoryState()
+    delete historyState.vrtReportDetailEntry
+    delete historyState.vrtReportDetailId
+    window.history.replaceState(historyState, '', url)
+  }
+
   function visibleDetailEntries() {
     return Array.from(storyList.querySelectorAll('[data-detail-id]'))
       .map((section) => detailEntries.get(section.dataset.detailId))
       .filter((entry) => entry !== undefined)
   }
 
-  function updateDetailNavigation() {
-    if (detailSelection === null) return
+  function currentDetailPosition() {
+    if (detailSelection === null) return undefined
     const entries = visibleDetailEntries()
     const selectedId = detailId(detailSelection.story, detailSelection.variant)
     const index = entries.findIndex(
       (entry) => detailId(entry.story, entry.variant) === selectedId,
     )
-    detailPrevious.disabled = entries.length < 2 || index < 0
-    detailNext.disabled = entries.length < 2 || index < 0
+    return { entries, index, navigable: entries.length >= 2 && index >= 0 }
+  }
+
+  function updateDetailNavigation() {
+    const position = currentDetailPosition()
+    if (position === undefined) return
+    detailPrevious.disabled = !position.navigable
+    detailNext.disabled = !position.navigable
     detailPosition.textContent =
-      index < 0 ? '0 / ' + entries.length : index + 1 + ' / ' + entries.length
+      position.index < 0
+        ? '0 / ' + position.entries.length
+        : position.index + 1 + ' / ' + position.entries.length
   }
 
   function showDetail(story, variant) {
@@ -195,15 +212,12 @@
   }
 
   function navigateDetail(direction) {
-    if (detailSelection === null) return
-    const entries = visibleDetailEntries()
-    const currentId = detailId(detailSelection.story, detailSelection.variant)
-    const index = entries.findIndex(
-      (entry) => detailId(entry.story, entry.variant) === currentId,
-    )
-    if (index < 0 || entries.length < 2) return
-    const nextIndex = (index + direction + entries.length) % entries.length
-    const next = entries[nextIndex]
+    const position = currentDetailPosition()
+    if (position === undefined || !position.navigable) return
+    const nextIndex =
+      (position.index + direction + position.entries.length) %
+      position.entries.length
+    const next = position.entries[nextIndex]
     if (next === undefined) return
     updateDetailUrl(detailId(next.story, next.variant), 'replace')
     showDetail(next.story, next.variant)
@@ -226,11 +240,7 @@
       window.history.back()
       return
     }
-    const url = new URL(window.location.href)
-    url.searchParams.delete('id')
-    delete historyState.vrtReportDetailEntry
-    delete historyState.vrtReportDetailId
-    window.history.replaceState(historyState, '', url)
+    clearDetailUrl()
     closeDetailFromLocation()
   }
 
@@ -254,11 +264,7 @@
     if (id === null) return
     const entry = detailEntries.get(id)
     if (entry === undefined) {
-      url.searchParams.delete('id')
-      const historyState = currentHistoryState()
-      delete historyState.vrtReportDetailEntry
-      delete historyState.vrtReportDetailId
-      window.history.replaceState(historyState, '', url)
+      clearDetailUrl()
       return
     }
     const historyState = currentHistoryState()
@@ -266,12 +272,7 @@
       historyState.vrtReportDetailEntry !== true ||
       historyState.vrtReportDetailId !== id
     ) {
-      const baseUrl = new URL(url)
-      baseUrl.searchParams.delete('id')
-      const baseState = currentHistoryState()
-      delete baseState.vrtReportDetailEntry
-      delete baseState.vrtReportDetailId
-      window.history.replaceState(baseState, '', baseUrl)
+      clearDetailUrl()
       updateDetailUrl(id, 'push')
     }
     showDetail(entry.story, entry.variant)
