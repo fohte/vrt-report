@@ -12,16 +12,12 @@ export default defineConfig({
     }),
   ],
   resolve: {
-    alias: {
-      '#report-client-comparison': resolve(
-        import.meta.dirname,
-        'src/report-client-comparison.js',
-      ),
-      '#report-client-tree': resolve(
-        import.meta.dirname,
-        'src/report-client-tree.js',
-      ),
-    },
+    alias: [
+      {
+        find: /^#(report-client-.+)$/,
+        replacement: `${resolve(import.meta.dirname, 'src')}/$1.js`,
+      },
+    ],
   },
   build: {
     outDir: resolve(import.meta.dirname, 'dist'),

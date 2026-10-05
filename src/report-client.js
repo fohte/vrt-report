@@ -1,7 +1,7 @@
 import { createReportComparison } from '#report-client-comparison'
 import { createReportTree } from '#report-client-tree'
 
-;(() => {
+function initializeReport() {
   const report = JSON.parse(document.getElementById('report-data').textContent)
   const state = {
     query: '',
@@ -483,4 +483,6 @@ import { createReportTree } from '#report-client-tree'
   })
   render()
   initializeDetailFromLocation()
-})()
+}
+
+initializeReport()
