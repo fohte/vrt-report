@@ -31,9 +31,9 @@ class OutputFileError extends Error {
   }
 }
 
-class ReportAssetError extends Error {
+class ReportTemplateError extends Error {
   constructor(cause: unknown) {
-    super('Could not read report assets', { cause })
+    super('Could not read report template', { cause })
     this.name = new.target.name
   }
 }
@@ -134,31 +134,10 @@ export const generateReport = (
       const assetsPrefix = relative(dirname(outputPath), assetsDirectory)
         .split(sep)
         .join('/')
-      const clientScript = Promise.all([
-        readFile(new URL('./report-client-tree.js', import.meta.url), 'utf8'),
-        readFile(
-          new URL('./report-client-comparison.js', import.meta.url),
-          'utf8',
-        ),
-        readFile(new URL('./report-client.js', import.meta.url), 'utf8'),
-      ]).then((clientScripts) => clientScripts.join('\n'))
-      const combinedStyles = Promise.all([
-        readFile(new URL('./report-styles.css', import.meta.url), 'utf8'),
-        readFile(
-          new URL('./report-detail-styles.css', import.meta.url),
-          'utf8',
-        ),
-        readFile(new URL('./report-responsive.css', import.meta.url), 'utf8'),
-      ]).then((styles) => styles.join('\n'))
-
       return ResultAsync.fromPromise(
-        Promise.all([
-          readFile(new URL('./report-template.html', import.meta.url), 'utf8'),
-          clientScript,
-          combinedStyles,
-        ]),
-        (cause) => new ReportAssetError(cause),
-      ).andThen(([template, clientScript, combinedStyles]) => {
+        readFile(new URL('./report-template.html', import.meta.url), 'utf8'),
+        (cause) => new ReportTemplateError(cause),
+      ).andThen((template) => {
         const html = renderReport(
           model,
           {
@@ -166,8 +145,6 @@ export const generateReport = (
             baselineDirectory: options.baselineDirectory,
           },
           template,
-          combinedStyles,
-          clientScript,
         )
 
         return ResultAsync.fromPromise(

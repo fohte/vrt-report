@@ -1,3 +1,6 @@
+import { createReportComparison } from '#report-client-comparison'
+import { createReportTree } from '#report-client-tree'
+
 ;(() => {
   const report = JSON.parse(document.getElementById('report-data').textContent)
   const state = {

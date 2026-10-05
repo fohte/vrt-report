@@ -43,8 +43,6 @@ export const renderReport = (
   model: ReportModel,
   options: RenderOptions,
   template: string,
-  styles: string,
-  clientScript: string,
 ): string => {
   const assetsPrefix = encodePath(options.assetsPrefix)
   const baselineLocation = options.baselineDirectory ?? DEFAULT_BASELINE_DIR
@@ -77,8 +75,5 @@ export const renderReport = (
   }))
   const data = escapeScriptData({ ...model, stories })
 
-  return template
-    .replace('__VRT_REPORT_STYLES__', () => styles)
-    .replace('__VRT_REPORT_DATA__', () => data)
-    .replace('__VRT_REPORT_CLIENT__', () => clientScript)
+  return template.replace('__VRT_REPORT_DATA__', () => data)
 }

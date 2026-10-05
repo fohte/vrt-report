@@ -1,4 +1,4 @@
-const createReportTree = ({
+export const createReportTree = ({
   report,
   state,
   tree,

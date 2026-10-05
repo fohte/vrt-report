@@ -1,32 +1,29 @@
 import { readFileSync } from 'node:fs'
-import { Script } from 'node:vm'
 
-import { Result } from 'neverthrow'
 import { describe, expect, it } from 'vitest'
 
-const reportClient = [
-  'report-client-tree.js',
-  'report-client-comparison.js',
-  'report-client.js',
-]
-  .map((filename) =>
-    readFileSync(new URL(`./${filename}`, import.meta.url), 'utf8'),
-  )
-  .join('\n')
+const reportTemplate = readFileSync(
+  new URL('../dist/report-template.html', import.meta.url),
+  'utf8',
+)
 
-const clientScriptSpec = (source: string): { valid: boolean } => {
-  const parsed = Result.fromThrowable(
-    (script: string) => new Script(script),
-    () => undefined,
-  )(source)
-  return parsed.match(
-    () => ({ valid: true }),
-    () => ({ valid: false }),
-  )
-}
+const clientAssets = (html: string) => ({
+  externalScripts: [...html.matchAll(/<script\b[^>]*\bsrc\s*=/g)].length,
+  externalStylesheets: [...html.matchAll(/<link\b[^>]*\brel="stylesheet"/g)]
+    .length,
+  inlineClientModules: [
+    ...html.matchAll(/<script\b(?=[^>]*\btype="module")[^>]*>/g),
+  ].length,
+  inlineStylesheets: [...html.matchAll(/<style\b/g)].length,
+})
 
-describe('report client', () => {
-  it('contains valid browser JavaScript', () => {
-    expect(clientScriptSpec(reportClient)).toEqual({ valid: true })
+describe('report client build', () => {
+  it('inlines its JavaScript and CSS into one HTML file', () => {
+    expect(clientAssets(reportTemplate)).toEqual({
+      externalScripts: 0,
+      externalStylesheets: 0,
+      inlineClientModules: 1,
+      inlineStylesheets: 1,
+    })
   })
 })
