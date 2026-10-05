@@ -389,6 +389,7 @@ const captureReport = async (browser, baseUrl, entry, interactionFailures) => {
       if (entry.detailToggle === 'after')
         await page.getByRole('checkbox', { name: 'Show after image' }).check()
     }
+    if (entry.detailMarkers) await page.locator('#detail-marker-toggle').click()
   }
   if (entry.detailStatus !== undefined) {
     const variant =

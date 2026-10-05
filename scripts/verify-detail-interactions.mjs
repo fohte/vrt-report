@@ -455,6 +455,242 @@ const verifyToggleControl = (page) =>
     return ok(undefined)
   })
 
+const verifyMarkersAcrossDetailModes = (page) =>
+  runCheck('diff markers across detail modes', async () => {
+    const result = await openSliderDetail(page, 'slide')
+    if (result.isErr()) return result
+    const dialog = result.value
+    const markerToggle = page.locator('#detail-marker-toggle')
+    if ((await markerToggle.getAttribute('aria-pressed')) === 'true')
+      await markerToggle.click()
+    await markerToggle.click()
+
+    const expectedRectangleCount = await page.evaluate(() => {
+      const report = JSON.parse(
+        document.getElementById('report-data').textContent,
+      )
+      const variant = report.stories
+        .flatMap((story) => story.variants)
+        .find((item) => item.status === 'changed')
+      return variant?.diffRegions?.rectangles.length ?? 0
+    })
+    const modes = [
+      ['slide', 1],
+      ['2up', 2],
+      ['diff', 1],
+      ['blend', 1],
+      ['toggle', 1],
+    ]
+    const actual = []
+    for (const [mode] of modes) {
+      await page.locator(`#detail-modes [data-mode="${mode}"]`).click()
+      actual.push({
+        mode,
+        pressed: await markerToggle.getAttribute('aria-pressed'),
+        overlayCount: await dialog.locator('.diff-markers').count(),
+        rectangleCount: await dialog.locator('.diff-markers rect').count(),
+      })
+    }
+    const expected = modes.map(([mode, overlayCount]) => ({
+      mode,
+      pressed: 'true',
+      overlayCount,
+      rectangleCount: expectedRectangleCount * overlayCount,
+    }))
+    await closeDetail(page)
+    if (JSON.stringify(actual) !== JSON.stringify(expected))
+      return err(
+        new Error(
+          `Markers were not rendered in every detail mode: ${JSON.stringify(actual)}`,
+        ),
+      )
+    return ok(undefined)
+  })
+
+const verifyMarkerAlignment = (page) =>
+  runCheck('diff marker alignment with contained images', async () => {
+    const result = await openSliderDetail(page, 'slide')
+    if (result.isErr()) return result
+    const dialog = result.value
+    const markerToggle = page.locator('#detail-marker-toggle')
+    if ((await markerToggle.getAttribute('aria-pressed')) !== 'true')
+      await markerToggle.click()
+
+    const originalViewport = page.viewportSize()
+    await page.setViewportSize({ width: 1440, height: 600 })
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(resolve)),
+    )
+
+    const actual = []
+    for (const mode of ['2up', 'diff']) {
+      await page.locator(`#detail-modes [data-mode="${mode}"]`).click()
+      const buttons = dialog.locator('.image-button')
+      await Promise.all(
+        Array.from({ length: await buttons.count() }, (_, index) =>
+          buttons
+            .nth(index)
+            .locator('img')
+            .evaluate((image) => image.decode()),
+        ),
+      )
+      const measurements = await buttons.evaluateAll((items) =>
+        items.map((button) => {
+          const image = button.querySelector('img')
+          const svg = button.querySelector('.diff-markers')
+          if (!image || !svg || image.naturalWidth === 0) return null
+
+          const imageBounds = image.getBoundingClientRect()
+          const imageScale = Math.min(
+            imageBounds.width / image.naturalWidth,
+            imageBounds.height / image.naturalHeight,
+          )
+          const imageContent = {
+            left:
+              imageBounds.left +
+              (imageBounds.width - image.naturalWidth * imageScale) / 2,
+            top:
+              imageBounds.top +
+              (imageBounds.height - image.naturalHeight * imageScale) / 2,
+            width: image.naturalWidth * imageScale,
+            height: image.naturalHeight * imageScale,
+          }
+
+          const matrix = svg.getScreenCTM()
+          const viewBox = svg.viewBox.baseVal
+          const markerStart = new DOMPoint(0, 0).matrixTransform(matrix)
+          const markerEnd = new DOMPoint(
+            viewBox.width,
+            viewBox.height,
+          ).matrixTransform(matrix)
+          const markerContent = {
+            left: markerStart.x,
+            top: markerStart.y,
+            width: markerEnd.x - markerStart.x,
+            height: markerEnd.y - markerStart.y,
+          }
+          const aligned = Object.keys(imageContent).every(
+            (dimension) =>
+              Math.abs(imageContent[dimension] - markerContent[dimension]) < 1,
+          )
+          return {
+            aligned,
+            maxHeightApplied:
+              button.clientHeight >
+              Number.parseFloat(getComputedStyle(image).maxHeight),
+          }
+        }),
+      )
+      actual.push({ mode, measurements })
+    }
+
+    if (originalViewport !== null) await page.setViewportSize(originalViewport)
+    await closeDetail(page)
+
+    const expected = [
+      {
+        mode: '2up',
+        measurements: [
+          { aligned: true, maxHeightApplied: false },
+          { aligned: true, maxHeightApplied: false },
+        ],
+      },
+      {
+        mode: 'diff',
+        measurements: [{ aligned: true, maxHeightApplied: true }],
+      },
+    ]
+    if (JSON.stringify(actual) !== JSON.stringify(expected))
+      return err(
+        new Error(
+          `Markers did not align with the contained image: ${JSON.stringify(actual)}`,
+        ),
+      )
+    return ok(undefined)
+  })
+
+const verifyMarkersHiddenWithoutRegions = (page) =>
+  runCheck('diff markers unavailable without regions', async () => {
+    const testPage = await page.context().newPage()
+    await testPage.route('**/report.html', async (route) => {
+      const response = await route.fetch()
+      const html = await response.text()
+      const data = html.match(
+        /(<script id="report-data" type="application\/json">)([\s\S]*?)(<\/script>)/,
+      )
+      if (data === null) throw new Error('The report data script is missing.')
+
+      const report = JSON.parse(data[2])
+      const changed = report.stories
+        .flatMap((story) => story.variants)
+        .find((variant) => variant.status === 'changed')
+      if (changed === undefined)
+        throw new Error('A changed variant is required for this check.')
+      changed.diffRegions = null
+      await route.fulfill({
+        response,
+        body: html.replace(data[0], data[1] + JSON.stringify(report) + data[3]),
+      })
+    })
+    await testPage.goto(page.url(), { waitUntil: 'networkidle' })
+    await testPage
+      .locator('.variant:has(.variant-status.changed) .image-button')
+      .first()
+      .click()
+    const dialog = testPage.locator('#detail-dialog')
+    const markerToggle = testPage.locator('#detail-marker-toggle')
+    const visibleBefore = await markerToggle.isVisible()
+    const pressedBefore = await markerToggle.getAttribute('aria-pressed')
+    await testPage.keyboard.press('m')
+    const actual = {
+      visibleBefore,
+      pressedBefore,
+      pressedAfter: await markerToggle.getAttribute('aria-pressed'),
+      overlayCount: await dialog.locator('.diff-markers').count(),
+    }
+    await testPage.close()
+
+    const expected = {
+      visibleBefore: false,
+      pressedBefore: 'false',
+      pressedAfter: 'false',
+      overlayCount: 0,
+    }
+    if (JSON.stringify(actual) !== JSON.stringify(expected))
+      return err(
+        new Error(
+          `Markers remained available without regions: ${JSON.stringify(actual)}`,
+        ),
+      )
+    return ok(undefined)
+  })
+
+const verifyMarkersKeyboardShortcut = (page) =>
+  runCheck('diff markers keyboard shortcut', async () => {
+    const result = await openSliderDetail(page, 'slide')
+    if (result.isErr()) return result
+    const dialog = result.value
+    const markerToggle = page.locator('#detail-marker-toggle')
+    const initial = await markerToggle.getAttribute('aria-pressed')
+    await page.keyboard.press('m')
+    const actual = {
+      pressed: await markerToggle.getAttribute('aria-pressed'),
+      overlayCount: await dialog.locator('.diff-markers').count(),
+    }
+    await closeDetail(page)
+    const expected = {
+      pressed: initial === 'true' ? 'false' : 'true',
+      overlayCount: initial === 'true' ? 0 : 1,
+    }
+    if (JSON.stringify(actual) !== JSON.stringify(expected))
+      return err(
+        new Error(
+          `The m shortcut did not toggle markers: ${JSON.stringify(actual)}`,
+        ),
+      )
+    return ok(undefined)
+  })
+
 const verifyDetailImageDoesNotReopenDialog = (page) =>
   runCheck('detail image click guard', async () => {
     const result = await openSliderDetail(page, 'diff')
@@ -495,6 +731,10 @@ export const verifyDetailInteractions = async (page) => {
     verifyDetailModeIsRemembered,
     verifyBlendOpacity,
     verifyToggleControl,
+    verifyMarkersAcrossDetailModes,
+    verifyMarkerAlignment,
+    verifyMarkersHiddenWithoutRegions,
+    verifyMarkersKeyboardShortcut,
     verifyDetailImageDoesNotReopenDialog,
     restoreSlideForCapture,
   ]

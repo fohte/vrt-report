@@ -5,6 +5,7 @@
     filter: 'changes',
     view: 'pair',
     detailView: 'slide',
+    markersVisible: false,
     selection: null,
   }
   const tree = document.getElementById('story-tree')
@@ -16,6 +17,7 @@
   const dialogVariant = document.getElementById('detail-variant')
   const dialogContent = document.getElementById('detail-content')
   const detailModes = document.getElementById('detail-modes')
+  const markerToggle = document.getElementById('detail-marker-toggle')
   const detailPrevious = document.getElementById('detail-previous')
   const detailNext = document.getElementById('detail-next')
   const detailPosition = document.getElementById('detail-position')
@@ -101,7 +103,7 @@
     storyStatuses,
   })
 
-  const { createVariant } = createReportComparison({
+  const { createVariant, hasDiffMarkers } = createReportComparison({
     state,
     storyLabel,
     titleCase,
@@ -131,6 +133,7 @@
 
   function renderDetail() {
     if (detailSelection === null) return
+    markerToggle.setAttribute('aria-pressed', String(state.markersVisible))
     for (const button of detailModes.querySelectorAll('.detail-mode'))
       button.setAttribute(
         'aria-pressed',
@@ -140,6 +143,33 @@
       createVariant(detailSelection.variant, detailSelection.story, true),
     )
   }
+
+  function toggleMarkers() {
+    state.markersVisible = !state.markersVisible
+    renderDetail()
+  }
+
+  markerToggle.addEventListener('click', toggleMarkers)
+  dialog.addEventListener('keydown', (event) => {
+    if (
+      event.defaultPrevented ||
+      event.key.toLowerCase() !== 'm' ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.altKey ||
+      markerToggle.hidden
+    )
+      return
+    if (
+      event.target instanceof Element &&
+      event.target.closest(
+        'input:not([type="range"]):not([type="checkbox"]), textarea, select, [contenteditable="true"]',
+      )
+    )
+      return
+    event.preventDefault()
+    toggleMarkers()
+  })
 
   function currentHistoryState() {
     const current = window.history.state
@@ -200,6 +230,7 @@
     dialogTitle.textContent = story.component + ' / ' + storyLabel(story)
     dialogVariant.textContent = variant.name
     detailModes.hidden = variant.status !== 'changed'
+    markerToggle.hidden = !hasDiffMarkers(variant)
     renderDetail()
     updateDetailNavigation()
     if (!dialog.open) dialog.showModal()
