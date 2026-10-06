@@ -7,16 +7,7 @@ import { renderReport } from '#render'
 import type { ReportModel } from '#report-model'
 
 const template = readFileSync(
-  new URL('./report-template.html', import.meta.url),
-  'utf8',
-)
-const styles = [
-  readFileSync(new URL('./report-styles.css', import.meta.url), 'utf8'),
-  readFileSync(new URL('./report-detail-styles.css', import.meta.url), 'utf8'),
-  readFileSync(new URL('./report-responsive.css', import.meta.url), 'utf8'),
-].join('\n')
-const clientScript = readFileSync(
-  new URL('./report-client.js', import.meta.url),
+  new URL('../dist/report-template.html', import.meta.url),
   'utf8',
 )
 
@@ -66,15 +57,7 @@ describe('renderReport', () => {
     }
 
     expect(
-      embeddedData(
-        renderReport(
-          model,
-          { assetsPrefix: 'assets' },
-          template,
-          styles,
-          clientScript,
-        ),
-      ),
+      embeddedData(renderReport(model, { assetsPrefix: 'assets' }, template)),
     ).toEqual({
       kind: 'ok',
       value: {
@@ -124,15 +107,7 @@ describe('renderReport', () => {
     }
 
     expect(
-      embeddedData(
-        renderReport(
-          model,
-          { assetsPrefix: '' },
-          template,
-          styles,
-          clientScript,
-        ),
-      ),
+      embeddedData(renderReport(model, { assetsPrefix: '' }, template)),
     ).toEqual({
       kind: 'ok',
       value: {

@@ -1,4 +1,4 @@
-const createReportComparison = ({
+export const createReportComparison = ({
   state,
   storyLabel,
   titleCase,

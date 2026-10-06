@@ -4,9 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Visual regression report</title>
-    <style>
-      __VRT_REPORT_STYLES__
-    </style>
+    <link rel="stylesheet" href="./report-styles.css" />
+    <link rel="stylesheet" href="./report-detail-styles.css" />
+    <link rel="stylesheet" href="./report-responsive.css" />
   </head>
   <body>
     <header class="topbar">
@@ -114,8 +114,6 @@
     <script id="report-data" type="application/json">
       __VRT_REPORT_DATA__
     </script>
-    <script>
-      __VRT_REPORT_CLIENT__
-    </script>
+    <script type="module" src="./report-client.js"></script>
   </body>
 </html>
