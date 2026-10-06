@@ -24,7 +24,9 @@ const createStory = (
 
 type TreeSummary = {
   children: Array<[string, { path: string } & TreeSummary]>
-  components: Array<[string, { component: string; stories: string[] }]>
+  components: Array<
+    [string, { component: string; sourcePath: string; stories: string[] }]
+  >
 }
 
 const summarizeNode = (
@@ -44,6 +46,7 @@ const summarizeNode = (
       sourcePath,
       {
         component: component.component,
+        sourcePath: component.sourcePath,
         stories: component.stories.map((story) => story.id),
       },
     ],
@@ -101,6 +104,7 @@ describe('story tree', () => {
                         'src/controls/alpha.stories.tsx',
                         {
                           component: 'AlphaWidget',
+                          sourcePath: 'src/controls/alpha.stories.tsx',
                           stories: ['primary', 'secondary'],
                         },
                       ],
@@ -115,7 +119,11 @@ describe('story tree', () => {
                     components: [
                       [
                         'src/layouts/beta.stories.tsx',
-                        { component: 'BetaBanner', stories: ['banner'] },
+                        {
+                          component: 'BetaBanner',
+                          sourcePath: 'src/layouts/beta.stories.tsx',
+                          stories: ['banner'],
+                        },
                       ],
                     ],
                   },
@@ -126,7 +134,14 @@ describe('story tree', () => {
           ],
         ],
         components: [
-          ['standalone', { component: 'Standalone', stories: ['standalone'] }],
+          [
+            'standalone',
+            {
+              component: 'Standalone',
+              sourcePath: 'standalone',
+              stories: ['standalone'],
+            },
+          ],
         ],
       },
       [4, 3, 2],

@@ -1,5 +1,5 @@
 import { getComponentStatuses, getVisibleStories } from '#report-client-logic'
-import { buildStoryTree, countStoriesInTree } from '#report-tree'
+import { buildStoryTree, countStoriesInTree } from '#report-client-tree-model'
 
 export const createReportTree = ({ report, state, tree, renderList }) => {
   function createDirectory(node, name) {

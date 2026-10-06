@@ -9,6 +9,7 @@ import {
   getAdjacentDetailEntry,
   getComponentStatuses,
   getDetailPosition,
+  getStoryVariantGroups,
   getVisibleDetailEntries,
   getVisibleStories,
   matchesSearch,
@@ -126,26 +127,43 @@ describe('report story logic', () => {
 
   it('searches story identifiers, labels, component paths, and variant names', () => {
     const story = createStory('storybook/open-panel', {
-      storyId: 'opens-settings-panel',
-      displayName: 'Settings Overview',
-      component: 'SettingsPanel',
-      sourcePath: 'src/settings/SettingsPanel.stories.tsx',
+      storyId: 'story-identifier-needle',
+      displayName: 'display-label-needle',
+      component: 'component-name-needle',
+      sourcePath: 'src/source-path-needle/Story.stories.tsx',
       variants: [
-        { name: 'wide', status: 'changed', key: 'wide' },
+        { name: 'variant-name-needle', status: 'changed', key: 'wide' },
         { name: 'compact', status: 'unchanged', key: 'compact' },
       ],
     })
 
     expect(
       [
-        'settings',
-        'overview',
-        'panel',
-        'settingspanel.stories',
-        'compact',
-        'missing',
+        'identifier-needle',
+        'label-needle',
+        'component-name-needle',
+        'source-path-needle',
+        'variant-name-needle',
+        'missing-needle',
       ].map((query) => matchesSearch(story, query)),
     ).toEqual([true, true, true, true, true, false])
+  })
+
+  it('groups changed and unchanged variants for the initial list', () => {
+    const story = createStory('mixed', {
+      variants: [
+        { name: 'wide', status: 'changed', key: 'mixed-wide' },
+        { name: 'compact', status: 'unchanged', key: 'mixed-compact' },
+      ],
+    })
+
+    expect(getStoryVariantGroups(story)).toEqual({
+      changed: [{ name: 'wide', status: 'changed', key: 'mixed-wide' }],
+      unchanged: [
+        { name: 'compact', status: 'unchanged', key: 'mixed-compact' },
+      ],
+      initial: [{ name: 'wide', status: 'changed', key: 'mixed-wide' }],
+    })
   })
 
   it('trims and lowercases search input', () => {

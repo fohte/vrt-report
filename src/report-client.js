@@ -7,6 +7,7 @@ import {
   detailId,
   getAdjacentDetailEntry,
   getDetailPosition,
+  getStoryVariantGroups,
   getVisibleDetailEntries,
   getVisibleStories,
   normalizeSearchQuery,
@@ -275,23 +276,15 @@ function initializeReport() {
     head.append(title, component)
     const variants = document.createElement('div')
     variants.className = 'variant-list'
-    const changedVariants = story.variants.filter(
-      (variant) => variant.status !== 'unchanged',
-    )
+    const { changed, unchanged, initial } = getStoryVariantGroups(story)
     article.append(head, variants)
-    const unchanged = story.variants.filter(
-      (variant) => variant.status === 'unchanged',
-    )
-    const initialVariants =
-      changedVariants.length > 0 ? changedVariants : unchanged
     const createListVariant = (variant) => {
       const section = createVariant(variant, story, false)
       section.dataset.detailId = detailId(story, variant)
       return section
     }
-    for (const variant of initialVariants)
-      variants.append(createListVariant(variant))
-    if (changedVariants.length > 0 && unchanged.length > 0) {
+    for (const variant of initial) variants.append(createListVariant(variant))
+    if (changed.length > 0 && unchanged.length > 0) {
       const toggle = document.createElement('button')
       toggle.type = 'button'
       toggle.className = 'show-unchanged'

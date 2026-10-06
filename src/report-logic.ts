@@ -15,6 +15,12 @@ export type DetailEntry = {
   variant: ReportVariant
 }
 
+export type StoryVariantGroups = {
+  changed: ReportVariant[]
+  unchanged: ReportVariant[]
+  initial: ReportVariant[]
+}
+
 export type DetailPosition = {
   entries: DetailEntry[]
   index: number
@@ -110,6 +116,22 @@ export const getVisibleStories = (
       matchesSelection(story, criteria.selection),
   )
 
+export const getStoryVariantGroups = (
+  story: ReportStory,
+): StoryVariantGroups => {
+  const changed = story.variants.filter(
+    (variant) => variant.status !== 'unchanged',
+  )
+  const unchanged = story.variants.filter(
+    (variant) => variant.status === 'unchanged',
+  )
+  return {
+    changed,
+    unchanged,
+    initial: changed.length > 0 ? changed : unchanged,
+  }
+}
+
 export const createDetailEntryIndex = (
   stories: ReportStory[],
 ): Map<string, DetailEntry> =>
@@ -126,18 +148,13 @@ export const getVisibleDetailEntries = (
   expandedStoryIds: ReadonlySet<string>,
 ): DetailEntry[] =>
   stories.flatMap((story) => {
-    const changedVariants = story.variants.filter(
-      (variant) => variant.status !== 'unchanged',
-    )
-    const unchangedVariants = story.variants.filter(
-      (variant) => variant.status === 'unchanged',
-    )
+    const { changed, unchanged, initial } = getStoryVariantGroups(story)
     const visibleVariants =
-      changedVariants.length === 0
-        ? unchangedVariants
+      changed.length === 0
+        ? initial
         : expandedStoryIds.has(story.id)
-          ? [...changedVariants, ...unchangedVariants]
-          : changedVariants
+          ? [...changed, ...unchanged]
+          : initial
     return visibleVariants.map((variant) => ({ story, variant }))
   })
 

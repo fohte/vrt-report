@@ -18,6 +18,10 @@ export default defineConfig({
         replacement: `${resolve(import.meta.dirname, 'src')}/report-logic.ts`,
       },
       {
+        find: /^#report-client-tree-model$/,
+        replacement: `${resolve(import.meta.dirname, 'src')}/report-tree.ts`,
+      },
+      {
         find: /^#(report-client-.+)$/,
         replacement: `${resolve(import.meta.dirname, 'src')}/$1.js`,
       },
