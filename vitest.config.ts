@@ -6,11 +6,27 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^#vrt-components\/comparison-model$/,
+        replacement: fileURLToPath(
+          new URL('./src/components/comparison-model.ts', import.meta.url),
+        ),
+      },
+      {
+        find: /^#vrt-components\/(.+)$/,
+        replacement: `${fileURLToPath(new URL('./src/components/', import.meta.url))}$1.tsx`,
+      },
+      {
+        find: /^#storybook\.css$/,
+        replacement: fileURLToPath(
+          new URL('./src/storybook.css', import.meta.url),
+        ),
+      },
+      {
         find: /^#test-fixtures\/(.+)$/,
         replacement: `${fileURLToPath(new URL('./test/fixtures/', import.meta.url))}$1.ts`,
       },
       {
-        find: /^#(.+)$/,
+        find: /^#(?!(?:utils|padding)$|components\/)(.+)$/,
         replacement: `${fileURLToPath(new URL('./src/', import.meta.url))}$1.ts`,
       },
     ],

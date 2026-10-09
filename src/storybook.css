@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fohte/ui/tokens.css';
+
+@source '../node_modules/@fohte/ui/src';
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-background font-sans text-foreground;
+}

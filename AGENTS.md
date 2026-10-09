@@ -30,11 +30,37 @@ function parseConfig(raw: string): Result<Config, ConfigError> {
 
 Use `ResultAsync.fromPromise()` or `Result.fromThrowable()` to interop with a throwing API without a local try/catch. If the throw-based contract genuinely can't be wrapped that way, catch the exception, wrap it in a `BoundaryError` subclass (see `src/errors.ts`), and rethrow it — `no-restricted-syntax` bans `try`/`throw` as separate selectors, so both the `try` and the `throw` need their own `eslint-disable-next-line no-restricted-syntax` comment explaining why.
 
+## Storybook
+
+### Write a story for every presentational component
+
+Every presentational component under `src/components/` should have a co-located `.stories.tsx` file matching the component's filename (e.g. `src/components/card.tsx` pairs with `src/components/card.stories.tsx`). If a source file exports multiple components, give each one its own `<component-name>.stories.tsx` file instead of matching the source filename. Write one story per meaningful state/variant of the component.
+
+### Give each story a descriptive `name`
+
+Write a short, natural-language sentence describing the rendered state, including the detail that distinguishes it from sibling stories. Splitting the story's export name into words (e.g. `open editor shows next preview`) does not describe the state as a sentence; write something like `the editor shows the next preview` instead. The `name` is displayed in Storybook.
+
+### Extract route-inline UI that has its own appearance or state
+
+Stories are the only thing the `vrt` CI check renders and screenshots. A route file is never rendered by a story, so UI written inline in a route — a `<select>`, a checkbox, a column header, an empty state, a full-screen loading/not-found view — has no visual-regression coverage even when the rule above (every presentational component under `src/components/` has a story) is fully satisfied.
+
+Keep in the route file: data fetching, URL parameter handling, and composing already-extracted, already-storied components into the screen layout. Extract into `src/components/` (with a story) anything that has its own visual appearance or state, even a few lines of JSX, since a story is the only way it gets checked for a visual regression.
+
+### A story is a prop-driven visual state, not a behavior test
+
+A story's args fully determine what renders; the story never clicks, types, or otherwise interacts to reach that state. `fohte/no-play-in-stories` (`@fohte/eslint-config`) rejects a `play` function on a story or its `meta`, and rejects `parameters.screenshot.skip`, because the `vrt` check screenshots every story as rendered — an interaction-driven story produces whatever the `play` function happens to leave on screen at screenshot time, not a stable state.
+
+For a state that would otherwise take interaction to reach — an open menu/popover/dialog, a field mid-edit — expose it through props (e.g. `open`/`defaultOpen`) instead of driving it with a `play` function, adding the prop or extracting a presentational subcomponent if the component doesn't already support it. Test the interaction itself (click, type, assert) in a co-located `.test.tsx` file, not in a story.
+
+### Prefer Storybook over manual browser checks
+
+When you need to check how a component looks in a given state, write or update its story and verify it with `pnpm run storybook:screenshot -- --changed origin/main` (swap `origin/main` for this repo's default branch if it differs) instead of starting a dev server and driving a browser manually. Dropping the ref limits `--changed` to staged/unstaged files only, so it silently runs nothing once the change is committed. The `vrt` CI check already renders and diffs every story on every PR, so this scoped run is enough — running the full `storybook:screenshot` suite instead keeps a headless Chromium instance (a multi-process browser, not a single lightweight process) busy per worker for as long as it takes to get through every story, competing with any other concurrent session or worktree for the same machine's CPU and memory.
+
 ## Visual Regression Testing (VRT)
 
 ### Understand why the `vrt` check fails
 
-The `vrt` CI check runs the repository's `vrt:capture` script, which must write screenshots to `__screenshots__/vrt-report`, and compares them against the `main` baseline with reg-suit. A failure ("Visual differences detected") means the pixel diff exceeded reg-suit's `matchingThreshold`, not that something is broken — open the reg-suit report link posted on the PR and compare the actual/expected/diff images to judge whether the change is intentional.
+The `vrt` CI check renders Storybook stories to screenshots and compares them against the `main` baseline with reg-suit. A failure ("Visual differences detected") means the pixel diff exceeded reg-suit's `matchingThreshold`, not that something is broken — open the reg-suit report link posted on the PR and compare the actual/expected/diff images to judge whether the change is intentional.
 
 ### Never add the `vrt-approved` label yourself
 

@@ -129,6 +129,6 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# vrt:capture output
-__screenshots__/vrt-report/
-.vrt-report-capture/
+# Storybook build output
+storybook-static/
+__screenshots__/desktop/
