@@ -375,6 +375,101 @@ const verifyDetailNavigationUsesCurrentList = (page) =>
     },
   )
 
+const verifyUnchangedExpansionNavigationResetsOnRerender = (page) =>
+  runCheck('unchanged variant expansion and list rerender', async () => {
+    await closeDetail(page)
+    await page.locator('#story-tree .tree-root').click()
+    await page.locator('#filters .filter.changes').click()
+
+    const expandableStory = page
+      .locator('#story-list .story:has(.show-unchanged)')
+      .first()
+    if ((await expandableStory.count()) === 0)
+      return err(new Error('No visible story can expand unchanged variants.'))
+
+    const storyIndex = await expandableStory.evaluate((story) =>
+      Array.from(document.querySelectorAll('#story-list .story')).indexOf(
+        story,
+      ),
+    )
+    const toggle = expandableStory.locator('.show-unchanged')
+    const collapsedIds = await visibleDetailIds(page)
+    await toggle.click()
+    const expandedToggle = await toggle.getAttribute('aria-expanded')
+    const expandedIds = await visibleDetailIds(page)
+    const unchangedIds = await expandableStory
+      .locator('.variant[data-unchanged="true"]')
+      .evaluateAll((sections) =>
+        sections.map((section) => section.dataset.detailId),
+      )
+    const firstUnchangedIndex = expandedIds.indexOf(unchangedIds[0])
+    if (firstUnchangedIndex < 1)
+      return err(
+        new Error('An unchanged variant is not visible after expansion.'),
+      )
+
+    const previousId = expandedIds[firstUnchangedIndex - 1]
+    const openById = async (id) => {
+      await page
+        .locator('#story-list .variant[data-detail-id]')
+        .evaluateAll((sections, targetId) => {
+          sections
+            .find((section) => section.dataset.detailId === targetId)
+            ?.querySelector('.image-button')
+            ?.click()
+        }, id)
+      await page.locator('#detail-dialog').waitFor({ state: 'visible' })
+    }
+
+    await openById(previousId)
+    await page.getByRole('button', { name: 'Next image' }).click()
+    const nextWhileExpanded = currentDetailId(page)
+    await closeDetail(page)
+
+    await page.locator('#filters .filter.all').click()
+    await page.locator('#filters .filter.changes').click()
+    const rerenderedIds = await visibleDetailIds(page)
+    const toggleAfterRerender = await page
+      .locator('#story-list .story')
+      .nth(storyIndex)
+      .locator('.show-unchanged')
+      .getAttribute('aria-expanded')
+    const previousIndexAfterRerender = rerenderedIds.indexOf(previousId)
+    if (previousIndexAfterRerender < 0)
+      return err(new Error('The changed variant disappeared after rerender.'))
+
+    await openById(previousId)
+    await page.getByRole('button', { name: 'Next image' }).click()
+    const nextAfterRerender = currentDetailId(page)
+    await closeDetail(page)
+
+    const expectedNextAfterRerender =
+      rerenderedIds.length < 2
+        ? previousId
+        : rerenderedIds[(previousIndexAfterRerender + 1) % rerenderedIds.length]
+    return outputMatches(
+      'unchanged variant navigation reset',
+      {
+        expandedToggle,
+        expandedNextId: nextWhileExpanded,
+        firstUnchangedId: unchangedIds[0],
+        rerenderedIds,
+        collapsedIds,
+        resetToggle: toggleAfterRerender,
+        nextAfterRerender,
+      },
+      {
+        expandedToggle: 'true',
+        expandedNextId: unchangedIds[0],
+        firstUnchangedId: unchangedIds[0],
+        rerenderedIds: collapsedIds,
+        collapsedIds,
+        resetToggle: 'false',
+        nextAfterRerender: expectedNextAfterRerender,
+      },
+    )
+  })
+
 const verifyDetailSliderKeyboard = (page) =>
   runCheck('detail slider keyboard', async () => {
     const result = await openSliderDetail(page, 'slide')
@@ -724,6 +819,7 @@ export const verifyDetailInteractions = async (page) => {
     verifyDetailUrlHistoryAndDirectLink,
     verifySearchKeysDoNotNavigate,
     verifyDetailNavigationUsesCurrentList,
+    verifyUnchangedExpansionNavigationResetsOnRerender,
     verifyListSliderKeyboard,
     verifyListSliderDrag,
     verifyDetailOpensOnClick,

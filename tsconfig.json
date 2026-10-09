@@ -10,6 +10,8 @@
     "noEmit": true,
     "paths": {
       "#test-fixtures/*": ["./test/fixtures/*.ts"],
+      "#report-client-logic": ["./src/report-logic.ts"],
+      "#report-client-tree-model": ["./src/report-tree.ts"],
       "#report-client-*": ["./src/report-client-*.js"],
       "#*": ["./src/*.ts"]
     }

@@ -1,38 +1,7 @@
-export const createReportTree = ({
-  report,
-  state,
-  tree,
-  matchesSearch,
-  matchesFilter,
-  renderList,
-  storyStatuses,
-}) => {
-  function buildTree(stories) {
-    const root = { children: new Map(), components: new Map() }
-    for (const story of stories) {
-      let node = root
-      const path = []
-      for (const directory of story.directories) {
-        path.push(directory)
-        if (!node.children.has(directory))
-          node.children.set(directory, {
-            children: new Map(),
-            components: new Map(),
-            path: path.join('/'),
-          })
-        node = node.children.get(directory)
-      }
-      if (!node.components.has(story.sourcePath))
-        node.components.set(story.sourcePath, {
-          component: story.component,
-          sourcePath: story.sourcePath,
-          stories: [],
-        })
-      node.components.get(story.sourcePath).stories.push(story)
-    }
-    return root
-  }
+import { getComponentStatuses, getVisibleStories } from '#report-client-logic'
+import { buildStoryTree, countStoriesInTree } from '#report-client-tree-model'
 
+export const createReportTree = ({ report, state, tree, renderList }) => {
   function createDirectory(node, name) {
     const details = document.createElement('details')
     details.className = 'tree-folder'
@@ -50,7 +19,7 @@ export const createReportTree = ({
     label.textContent = name
     const badge = document.createElement('span')
     badge.className = 'tree-count'
-    badge.textContent = String(countStories(node))
+    badge.textContent = String(countStoriesInTree(node))
     summary.append(label, badge)
     summary.dataset.selectionKind = 'directory'
     summary.dataset.selectionPath = node.path
@@ -67,15 +36,6 @@ export const createReportTree = ({
     return details
   }
 
-  function countStories(node) {
-    let total = [...node.components.values()].reduce(
-      (sum, component) => sum + component.stories.length,
-      0,
-    )
-    for (const child of node.children.values()) total += countStories(child)
-    return total
-  }
-
   function createComponent(component) {
     const button = document.createElement('button')
     button.type = 'button'
@@ -90,9 +50,7 @@ export const createReportTree = ({
     )
     button.dataset.selectionKind = 'component'
     button.dataset.selectionPath = component.sourcePath
-    const statuses = ['changed', 'new', 'deleted'].filter((status) =>
-      component.stories.some((story) => storyStatuses(story).includes(status)),
-    )
+    const statuses = getComponentStatuses(component.stories)
     const dot = document.createElement('span')
     dot.className = `tree-dot ${statuses.join(' ') || 'unchanged'}`
     const label = document.createElement('span')
@@ -111,9 +69,11 @@ export const createReportTree = ({
 
   function renderTree() {
     tree.replaceChildren()
-    const stories = report.stories.filter(
-      (story) => matchesSearch(story) && matchesFilter(story),
-    )
+    const stories = getVisibleStories(report.stories, {
+      query: state.query,
+      filter: state.filter,
+      selection: null,
+    })
     const rootButton = document.createElement('button')
     rootButton.type = 'button'
     rootButton.className = 'tree-root'
@@ -134,7 +94,7 @@ export const createReportTree = ({
       renderList()
     })
     tree.append(rootButton)
-    const root = buildTree(stories)
+    const root = buildStoryTree(stories)
     for (const [name, node] of root.children)
       tree.append(createDirectory(node, name))
     for (const component of root.components.values())

@@ -1,4 +1,18 @@
 import { createReportComparison } from '#report-client-comparison'
+import {
+  countPassedStories,
+  countStoriesWithChanges,
+  countStoriesWithStatus,
+  createDetailEntryIndex,
+  detailId,
+  getAdjacentDetailEntry,
+  getDetailPosition,
+  getStoryVariantGroups,
+  getVisibleDetailEntries,
+  getVisibleStories,
+  normalizeSearchQuery,
+  storyStatuses,
+} from '#report-client-logic'
 import { createReportTree } from '#report-client-tree'
 
 function initializeReport() {
@@ -27,67 +41,14 @@ function initializeReport() {
 
   const titleCase = (status) => status.charAt(0).toUpperCase() + status.slice(1)
   const storyLabel = (story) => story.displayName ?? story.storyId
-  const detailId = (story, variant) => story.id + '/' + variant.name
-  const detailEntries = new Map(
-    report.stories.flatMap((story) =>
-      story.variants.map((variant) => [
-        detailId(story, variant),
-        { story, variant },
-      ]),
-    ),
-  )
-  const storyStatuses = (story) => [
-    ...new Set(
-      story.variants
-        .map((variant) => variant.status)
-        .filter((status) => status !== 'unchanged'),
-    ),
-  ]
-  const countStoriesWithStatus = (status) =>
-    report.stories.filter((story) => storyStatuses(story).includes(status))
-      .length
-  const hasChanges = (statuses) => statuses.length > 0
-  const countStoriesWithChanges = () =>
-    report.stories.filter((story) => hasChanges(storyStatuses(story))).length
-  const countPassedStories = () =>
-    report.stories.filter((story) => !hasChanges(storyStatuses(story))).length
-  const matchesSearch = (story) => {
-    if (!state.query) return true
-    const text = [
-      story.storyId,
-      story.displayName,
-      story.component,
-      story.sourcePath,
-      ...story.variants.map((variant) => variant.name),
-    ]
-      .join(' ')
-      .toLowerCase()
-    return text.includes(state.query)
-  }
-  const matchesFilter = (story) => {
-    const statuses = storyStatuses(story)
-    return (
-      state.filter === 'all' ||
-      (state.filter === 'changes' && hasChanges(statuses)) ||
-      (state.filter === 'passed' && !hasChanges(statuses)) ||
-      statuses.includes(state.filter)
-    )
-  }
-  const matchesSelection = (story) => {
-    if (!state.selection) return true
-    if (state.selection.kind === 'component')
-      return story.sourcePath === state.selection.path
-    const directoryPath = story.directories.join('/')
-    return (
-      directoryPath === state.selection.path ||
-      directoryPath.startsWith(state.selection.path + '/')
-    )
-  }
+  const detailEntries = createDetailEntryIndex(report.stories)
+  const expandedStoryIds = new Set()
   const visibleStories = () =>
-    report.stories.filter(
-      (story) =>
-        matchesSearch(story) && matchesFilter(story) && matchesSelection(story),
-    )
+    getVisibleStories(report.stories, {
+      query: state.query,
+      filter: state.filter,
+      selection: state.selection,
+    })
 
   function appendBadge(parent, status) {
     const badge = document.createElement('span')
@@ -100,10 +61,7 @@ function initializeReport() {
     report,
     state,
     tree,
-    matchesSearch,
-    matchesFilter,
     renderList,
-    storyStatuses,
   })
 
   const { createVariant, hasDiffMarkers } = createReportComparison({
@@ -202,19 +160,13 @@ function initializeReport() {
   }
 
   function visibleDetailEntries() {
-    return Array.from(storyList.querySelectorAll('[data-detail-id]'))
-      .map((section) => detailEntries.get(section.dataset.detailId))
-      .filter((entry) => entry !== undefined)
+    return getVisibleDetailEntries(visibleStories(), expandedStoryIds)
   }
 
   function currentDetailPosition() {
     if (detailSelection === null) return undefined
-    const entries = visibleDetailEntries()
     const selectedId = detailId(detailSelection.story, detailSelection.variant)
-    const index = entries.findIndex(
-      (entry) => detailId(entry.story, entry.variant) === selectedId,
-    )
-    return { entries, index, navigable: entries.length >= 2 && index >= 0 }
+    return getDetailPosition(visibleDetailEntries(), selectedId)
   }
 
   function updateDetailNavigation() {
@@ -248,10 +200,7 @@ function initializeReport() {
   function navigateDetail(direction) {
     const position = currentDetailPosition()
     if (position === undefined || !position.navigable) return
-    const nextIndex =
-      (position.index + direction + position.entries.length) %
-      position.entries.length
-    const next = position.entries[nextIndex]
+    const next = getAdjacentDetailEntry(position, direction)
     if (next === undefined) return
     updateDetailUrl(detailId(next.story, next.variant), 'replace')
     showDetail(next.story, next.variant)
@@ -327,23 +276,15 @@ function initializeReport() {
     head.append(title, component)
     const variants = document.createElement('div')
     variants.className = 'variant-list'
-    const changedVariants = story.variants.filter(
-      (variant) => variant.status !== 'unchanged',
-    )
+    const { changed, unchanged, initial } = getStoryVariantGroups(story)
     article.append(head, variants)
-    const unchanged = story.variants.filter(
-      (variant) => variant.status === 'unchanged',
-    )
-    const initialVariants =
-      changedVariants.length > 0 ? changedVariants : unchanged
     const createListVariant = (variant) => {
       const section = createVariant(variant, story, false)
       section.dataset.detailId = detailId(story, variant)
       return section
     }
-    for (const variant of initialVariants)
-      variants.append(createListVariant(variant))
-    if (changedVariants.length > 0 && unchanged.length > 0) {
+    for (const variant of initial) variants.append(createListVariant(variant))
+    if (changed.length > 0 && unchanged.length > 0) {
       const toggle = document.createElement('button')
       toggle.type = 'button'
       toggle.className = 'show-unchanged'
@@ -352,6 +293,8 @@ function initializeReport() {
       toggle.addEventListener('click', () => {
         const open = toggle.getAttribute('aria-expanded') === 'true'
         toggle.setAttribute('aria-expanded', String(!open))
+        if (open) expandedStoryIds.delete(story.id)
+        else expandedStoryIds.add(story.id)
         toggle.textContent =
           (open ? 'Show ' : 'Hide ') + unchanged.length + ' unchanged variants'
         if (open) {
@@ -372,6 +315,7 @@ function initializeReport() {
   }
 
   function renderList() {
+    expandedStoryIds.clear()
     const stories = visibleStories()
     count.textContent =
       stories.length + (stories.length === 1 ? ' story' : ' stories')
@@ -395,12 +339,12 @@ function initializeReport() {
 
   const filters = document.getElementById('filters')
   for (const [filter, label, value] of [
-    ['changes', 'Changes', countStoriesWithChanges()],
+    ['changes', 'Changes', countStoriesWithChanges(report.stories)],
     ['all', 'All', report.stories.length],
-    ['changed', 'Changed', countStoriesWithStatus('changed')],
-    ['new', 'New', countStoriesWithStatus('new')],
-    ['deleted', 'Deleted', countStoriesWithStatus('deleted')],
-    ['passed', 'Passed', countPassedStories()],
+    ['changed', 'Changed', countStoriesWithStatus(report.stories, 'changed')],
+    ['new', 'New', countStoriesWithStatus(report.stories, 'new')],
+    ['deleted', 'Deleted', countStoriesWithStatus(report.stories, 'deleted')],
+    ['passed', 'Passed', countPassedStories(report.stories)],
   ]) {
     const button = document.createElement('button')
     button.type = 'button'
@@ -442,7 +386,7 @@ function initializeReport() {
   }
 
   search.addEventListener('input', () => {
-    state.query = search.value.trim().toLowerCase()
+    state.query = normalizeSearchQuery(search.value)
     render()
   })
   document.getElementById('detail-close').addEventListener('click', closeDetail)
