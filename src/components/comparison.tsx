@@ -9,6 +9,7 @@ import {
   type ComparisonVariant,
   formatComparisonStatus,
   getComparisonPanes,
+  type ImageLabel,
 } from '#vrt-components/comparison-model'
 import {
   type ComparisonInteractiveMode,
@@ -41,7 +42,7 @@ function ImagePane({
   markersVisible,
   onOpenDetail,
 }: {
-  label: 'Before' | 'After' | 'Current' | 'Diff'
+  label: ImageLabel
   source: string | null
   variant: ComparisonVariant
   storyLabel: string

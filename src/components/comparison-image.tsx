@@ -14,12 +14,15 @@ export type ComparisonImageProps = {
   loading?: 'eager' | 'lazy'
   detail?: boolean
   markersVisible?: boolean
-  markerOnly?: boolean
   position?: 'relative' | 'absolute'
   className?: string
 }
 
-function DifferenceMarkers({ variant }: { variant: ComparisonVariant }) {
+export function DifferenceMarkersOverlay({
+  variant,
+}: {
+  variant: ComparisonVariant
+}) {
   const regions = variant.diffRegions
   if (!hasDiffMarkers(variant) || regions === null || regions === undefined)
     return null
@@ -55,7 +58,6 @@ export function ComparisonImage({
   loading = 'lazy',
   detail = false,
   markersVisible = false,
-  markerOnly = false,
   position = 'relative',
   className,
 }: ComparisonImageProps) {
@@ -64,9 +66,9 @@ export function ComparisonImage({
 
   return (
     <span
-      className={`${position} flex aspect-video w-full items-center justify-center overflow-hidden ${markerOnly ? 'bg-transparent' : 'bg-muted'} ${className ?? ''}`}
+      className={`${position} flex aspect-video w-full items-center justify-center overflow-hidden bg-muted ${className ?? ''}`}
     >
-      {!markerOnly && source !== null && (
+      {source !== null && (
         <img
           src={source}
           alt={`${label}: ${storyLabel}`}
@@ -78,12 +80,14 @@ export function ComparisonImage({
           className={`size-full object-contain ${failed ? 'hidden' : ''}`}
         />
       )}
-      {!markerOnly && (source === null || failed) && (
+      {(source === null || failed) && (
         <span className="px-4 text-center font-mono text-xs text-muted-foreground">
           {label === 'Diff' ? 'Diff unavailable' : 'Image unavailable'}
         </span>
       )}
-      {detail && markersVisible && <DifferenceMarkers variant={variant} />}
+      {detail && markersVisible && (
+        <DifferenceMarkersOverlay variant={variant} />
+      )}
     </span>
   )
 }

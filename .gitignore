@@ -132,3 +132,5 @@ dist
 # Storybook build output
 storybook-static/
 __screenshots__/desktop/
+.vitest-attachments/
+src/components/__screenshots__/

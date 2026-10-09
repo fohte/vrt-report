@@ -5,7 +5,10 @@ import type {
 } from 'react'
 import { useRef, useState } from 'react'
 
-import { ComparisonImage } from '#vrt-components/comparison-image'
+import {
+  ComparisonImage,
+  DifferenceMarkersOverlay,
+} from '#vrt-components/comparison-image'
 import type { ComparisonVariant } from '#vrt-components/comparison-model'
 
 export type ComparisonInteractiveMode = 'slider' | 'slide' | 'blend' | 'toggle'
@@ -19,6 +22,43 @@ export type ComparisonModesProps = {
   toggleAfter?: boolean | undefined
   onToggleAfterChange?: ((showAfter: boolean) => void) | undefined
   onOpenDetail?: (() => void) | undefined
+}
+
+function BeforeAfterBadges() {
+  return (
+    <>
+      <span className="absolute left-3 top-3 z-10 bg-background/90 px-2 py-1 font-mono text-xs text-foreground">
+        Before
+      </span>
+      <span className="absolute right-3 top-3 z-10 bg-background/90 px-2 py-1 font-mono text-xs text-foreground">
+        After
+      </span>
+    </>
+  )
+}
+
+function RangeControl({
+  value,
+  label,
+  onChange,
+}: {
+  value: number
+  label: string
+  onChange: (value: number) => void
+}) {
+  return (
+    <input
+      type="range"
+      min="0"
+      max="100"
+      value={value}
+      aria-label={label}
+      onChange={(event) => {
+        onChange(Number(event.currentTarget.value))
+      }}
+      className="absolute inset-x-3 bottom-3 z-20 w-[calc(100%-1.5rem)] accent-primary"
+    />
+  )
 }
 
 function Slider({
@@ -134,34 +174,13 @@ function Slider({
           />
         </div>
         {detail && markersVisible && (
-          <ComparisonImage
-            label="Before"
-            source={null}
-            storyLabel={storyLabel}
-            variant={variant}
-            detail
-            markersVisible
-            markerOnly
-            position="absolute"
-            className="inset-0"
-          />
+          <DifferenceMarkersOverlay variant={variant} />
         )}
-        <span className="absolute left-3 top-3 z-10 bg-background/90 px-2 py-1 font-mono text-xs text-foreground">
-          Before
-        </span>
-        <span className="absolute right-3 top-3 z-10 bg-background/90 px-2 py-1 font-mono text-xs text-foreground">
-          After
-        </span>
-        <input
-          type="range"
-          min="0"
-          max="100"
+        <BeforeAfterBadges />
+        <RangeControl
           value={position}
-          aria-label="Compare before and after images"
-          onChange={(event) => {
-            setPosition(Number(event.currentTarget.value))
-          }}
-          className="absolute inset-x-3 bottom-3 z-20 w-[calc(100%-1.5rem)] accent-primary"
+          label="Compare before and after images"
+          onChange={setPosition}
         />
       </div>
     </Panel>
@@ -199,34 +218,13 @@ function Blend({
           />
         </div>
         {detail && markersVisible && (
-          <ComparisonImage
-            label="Before"
-            source={null}
-            storyLabel={storyLabel}
-            variant={variant}
-            detail
-            markersVisible
-            markerOnly
-            position="absolute"
-            className="inset-0"
-          />
+          <DifferenceMarkersOverlay variant={variant} />
         )}
-        <span className="absolute left-3 top-3 z-10 bg-background/90 px-2 py-1 font-mono text-xs text-foreground">
-          Before
-        </span>
-        <span className="absolute right-3 top-3 z-10 bg-background/90 px-2 py-1 font-mono text-xs text-foreground">
-          After
-        </span>
-        <input
-          type="range"
-          min="0"
-          max="100"
+        <BeforeAfterBadges />
+        <RangeControl
           value={opacity}
-          aria-label="After image opacity"
-          onChange={(event) => {
-            setOpacity(Number(event.currentTarget.value))
-          }}
-          className="absolute inset-x-3 bottom-3 z-20 w-[calc(100%-1.5rem)] accent-primary"
+          label="After image opacity"
+          onChange={setOpacity}
         />
       </div>
     </Panel>
@@ -271,17 +269,7 @@ function Toggle({
           />
         </div>
         {detail && markersVisible && (
-          <ComparisonImage
-            label="Before"
-            source={null}
-            storyLabel={storyLabel}
-            variant={variant}
-            detail
-            markersVisible
-            markerOnly
-            position="absolute"
-            className="inset-0"
-          />
+          <DifferenceMarkersOverlay variant={variant} />
         )}
         <label className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 border border-border bg-background/90 px-3 py-2 font-mono text-xs text-foreground">
           <span>Before</span>

@@ -10,15 +10,12 @@ export default [
     },
     ...storybook.configs['flat/recommended'],
     {
-      // vite.config.ts/vitest.config.ts are loaded through Vite's own
-      // esbuild-based config loader, which doesn't resolve the package.json
-      // "imports" field, unlike the Rollup pipeline that bundles the package
-      // itself. .storybook/vitest.setup.ts imports its sibling
-      // .storybook/preview.ts by relative path because that file lives outside
-      // src/, the only directory the "imports" field maps.
+      // Vite loads these config files directly, so they use relative imports
+      // for config and setup files outside the package's source import map.
       files: [
         '.storybook/vitest.setup.ts',
         '.storybook/vitest.setup.screenshot.ts',
+        'vitest.browser.config.ts',
         'vitest.screenshot.config.ts',
       ],
       rules: { 'no-restricted-imports': 'off' },
