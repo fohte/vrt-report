@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.3](https://github.com/fohte/vrt-report/compare/v0.1.2...v0.1.3) (2026-10-09)
+
+
+### Features
+
+* **report:** pre-build the report UI into a single HTML file ([#30](https://github.com/fohte/vrt-report/issues/30)) ([4cdc5da](https://github.com/fohte/vrt-report/commit/4cdc5dadb9a19795c233d0dbcfb4639c795baec1))
+* **report:** support diff region markers in detail view ([#27](https://github.com/fohte/vrt-report/issues/27)) ([1d58a3a](https://github.com/fohte/vrt-report/commit/1d58a3aa283a6d47aa360fd858bffa94eeec50d2))
+* **report:** support previous/next navigation and URL synchronization in detail view ([#26](https://github.com/fohte/vrt-report/issues/26)) ([bbdac1c](https://github.com/fohte/vrt-report/commit/bbdac1ce76733488da4311b18eaf8c39f457b75f))
+
 ## [0.1.2](https://github.com/fohte/vrt-report/compare/v0.1.1...v0.1.2) (2026-10-04)
 
 
