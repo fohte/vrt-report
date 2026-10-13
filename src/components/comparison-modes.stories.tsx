@@ -5,15 +5,18 @@ import {
   type ComparisonModesProps,
 } from '#vrt-components/comparison-modes'
 
-const svg =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="#262626"/><rect x="90" y="86" width="180" height="124" fill="#525252"/><rect x="136" y="86" width="180" height="124" fill="#dc2626"/></svg>'
-const image = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+const previewImage = (accent: string, x: number) => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="#262626"/><rect x="${String(x)}" y="86" width="180" height="124" fill="${accent}"/></svg>`
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+const beforeImage = previewImage('#525252', 90)
+const afterImage = previewImage('#dc2626', 136)
 const variant: ComparisonModesProps['variant'] = {
   name: 'default',
   status: 'changed',
-  before: image,
-  after: image,
-  diff: image,
+  before: beforeImage,
+  after: afterImage,
+  diff: previewImage('#ef4444', 136),
   diffRegions: {
     width: 640,
     height: 360,
