@@ -6,6 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vitest/config'
 
 import { SCREENSHOT_VIEWPORT } from './.storybook/screenshot-viewport.ts'
+import { reportSourceAliases } from './vitest.config.ts'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -20,16 +21,7 @@ const storybookProject = createStorybookProject({
 export default defineConfig({
   ...storybookProject,
   resolve: {
-    alias: [
-      {
-        find: /^#report-logic$/,
-        replacement: path.resolve(dirname, 'src/report-logic.ts'),
-      },
-      {
-        find: /^#report-tree$/,
-        replacement: path.resolve(dirname, 'src/report-tree.ts'),
-      },
-    ],
+    alias: reportSourceAliases,
   },
   // The Storybook Vitest project does not use the builder's Vite config.
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- createStorybookProject exposes this plugin list as any[].

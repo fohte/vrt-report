@@ -2,9 +2,25 @@ import { fileURLToPath } from 'node:url'
 
 import { defineConfig } from 'vitest/config'
 
+export const reportSourceAliases = [
+  {
+    find: /^#report-logic$/,
+    replacement: fileURLToPath(
+      new URL('./src/report-logic.ts', import.meta.url),
+    ),
+  },
+  {
+    find: /^#report-tree$/,
+    replacement: fileURLToPath(
+      new URL('./src/report-tree.ts', import.meta.url),
+    ),
+  },
+]
+
 export default defineConfig({
   resolve: {
     alias: [
+      ...reportSourceAliases,
       {
         find: /^#vrt-components\/comparison-model$/,
         replacement: fileURLToPath(
