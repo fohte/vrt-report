@@ -5,6 +5,7 @@ import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 
 import {
   getStoryVariantGroups,
+  getVisibleVariants,
   type ReportStoryView,
   type ReportVariantView,
   storyStatuses,
@@ -58,12 +59,10 @@ export function ReportList({
               const { changed, unchanged, initial } =
                 getStoryVariantGroups(story)
               const expanded = expandedStoryIds.includes(story.id)
-              const visibleVariants =
-                changed.length === 0
-                  ? initial
-                  : expanded
-                    ? [...changed, ...unchanged]
-                    : initial
+              const visibleVariants = getVisibleVariants(
+                { changed, unchanged, initial },
+                expanded,
+              )
               const label = story.displayName ?? story.storyId
 
               return (

@@ -1,13 +1,11 @@
 import type { ReportModel } from '#report-model'
+import type { ComparisonVariant } from '#vrt-components/comparison-model'
 
 export type ReportStory = ReportModel['stories'][number]
 export type ReportVariant = ReportStory['variants'][number]
 export type ReportStatus = ReportVariant['status']
-export type ReportVariantView = Omit<ReportVariant, 'key'> & {
-  before: string | null
-  after: string | null
-  diff: string | null
-}
+export type ReportVariantView = Omit<ReportVariant, 'key'> &
+  Pick<ComparisonVariant, 'before' | 'after' | 'diff'>
 export type ReportStoryView = Omit<ReportStory, 'variants'> & {
   variants: ReportVariantView[]
 }
@@ -37,21 +35,18 @@ export type DetailPosition = {
   navigable: boolean
 }
 
-type StoryWithStatuses = { variants: { status: ReportStatus }[] }
-type SearchableStory = {
-  storyId: string
-  displayName?: string
-  component: string
-  sourcePath: string
-  variants: { name: string }[]
+type StoryWithStatuses = { variants: Pick<ReportVariant, 'status'>[] }
+type SearchableStory = Pick<
+  ReportStory,
+  'storyId' | 'displayName' | 'component' | 'sourcePath'
+> & {
+  variants: Pick<ReportVariant, 'name'>[]
 }
-type VisibleStory = {
-  storyId: string
-  displayName?: string
-  component: string
-  sourcePath: string
-  directories: string[]
-  variants: { name: string; status: ReportStatus }[]
+type VisibleStory = Pick<
+  ReportStory,
+  'storyId' | 'displayName' | 'component' | 'sourcePath' | 'directories'
+> & {
+  variants: Pick<ReportVariant, 'name' | 'status'>[]
 }
 
 export const detailId = (story: ReportStory, variant: ReportVariant): string =>
@@ -169,6 +164,12 @@ export const getStoryVariantGroups = <
   }
 }
 
+export const getVisibleVariants = <Variant extends { status: ReportStatus }>(
+  groups: StoryVariantGroups<Variant>,
+  expanded: boolean,
+): Variant[] =>
+  expanded ? [...groups.changed, ...groups.unchanged] : groups.initial
+
 export const createDetailEntryIndex = (
   stories: ReportStory[],
 ): Map<string, DetailEntry> =>
@@ -185,13 +186,11 @@ export const getVisibleDetailEntries = (
   expandedStoryIds: ReadonlySet<string>,
 ): DetailEntry[] =>
   stories.flatMap((story) => {
-    const { changed, unchanged, initial } = getStoryVariantGroups(story)
-    const visibleVariants =
-      changed.length === 0
-        ? initial
-        : expandedStoryIds.has(story.id)
-          ? [...changed, ...unchanged]
-          : initial
+    const groups = getStoryVariantGroups(story)
+    const visibleVariants = getVisibleVariants(
+      groups,
+      expandedStoryIds.has(story.id),
+    )
     return visibleVariants.map((variant) => ({ story, variant }))
   })
 

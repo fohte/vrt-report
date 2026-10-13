@@ -8,7 +8,10 @@ import {
   changedStoryId,
   reportStories,
 } from '#vrt-components/report-fixtures'
-import { ReportHeader } from '#vrt-components/report-header'
+import {
+  ReportHeader,
+  type ReportViewMode,
+} from '#vrt-components/report-header'
 import { ReportList } from '#vrt-components/report-list'
 import { ReportSidebar } from '#vrt-components/report-sidebar'
 
@@ -36,8 +39,8 @@ afterEach(() => {
 })
 
 describe('report header controls', () => {
-  it('reports filter and comparison mode selections to its owner', async () => {
-    const changes: Array<{ kind: string; value: string }> = []
+  it('reports a selected filter to its owner', async () => {
+    const filters: string[] = []
 
     mount(
       createElement(ReportHeader, {
@@ -45,32 +48,45 @@ describe('report header controls', () => {
         stories: reportStories,
         viewMode: 'pair',
         onFilterChange: (value) => {
-          changes.push({ kind: 'filter', value })
+          filters.push(value)
         },
-        onViewModeChange: (value) => {
-          changes.push({ kind: 'view', value })
-        },
+        onViewModeChange: () => undefined,
       }),
     )
 
     await act(async () => {
       await userEvent.click(page.getByRole('button', { name: 'New, 1 story' }))
+    })
+
+    expect(filters).toEqual(['new'])
+  })
+
+  it('reports a selected comparison mode to its owner', async () => {
+    const modes: ReportViewMode[] = []
+
+    mount(
+      createElement(ReportHeader, {
+        filter: 'changes',
+        stories: reportStories,
+        viewMode: 'pair',
+        onFilterChange: () => undefined,
+        onViewModeChange: (value) => {
+          modes.push(value)
+        },
+      }),
+    )
+
+    await act(async () => {
       await userEvent.click(page.getByRole('button', { name: 'Slider' }))
     })
 
-    expect(changes).toEqual([
-      { kind: 'filter', value: 'new' },
-      { kind: 'view', value: 'slider' },
-    ])
+    expect(modes).toEqual(['slider'])
   })
 })
 
 describe('report sidebar controls', () => {
-  it('reports search text and selected components to its owner', async () => {
-    const changes: Array<
-      | { kind: 'query'; value: string }
-      | { kind: 'selection'; value: { kind: 'component'; path: string } | null }
-    > = []
+  it('reports search text to its owner', async () => {
+    const queries: string[] = []
 
     mount(
       createElement(ReportSidebar, {
@@ -78,14 +94,9 @@ describe('report sidebar controls', () => {
         stories: reportStories,
         selection: null,
         onQueryChange: (value) => {
-          changes.push({ kind: 'query', value })
+          queries.push(value)
         },
-        onSelectionChange: (value) => {
-          changes.push({
-            kind: 'selection',
-            value: value?.kind === 'component' ? value : null,
-          })
-        },
+        onSelectionChange: () => undefined,
       }),
     )
 
@@ -94,25 +105,49 @@ describe('report sidebar controls', () => {
         page.getByRole('searchbox', { name: 'Filter stories' }),
         'Example panel',
       )
+    })
+
+    expect(queries).toEqual(['Example panel'])
+  })
+
+  it('reports a selected component to its owner', async () => {
+    const selections: Array<{
+      kind: 'component' | 'directory'
+      path: string
+    } | null> = []
+
+    mount(
+      createElement(ReportSidebar, {
+        query: '',
+        stories: reportStories,
+        selection: null,
+        onQueryChange: () => undefined,
+        onSelectionChange: (value) => {
+          selections.push(value)
+        },
+      }),
+    )
+
+    await act(async () => {
       await userEvent.click(page.getByRole('button', { name: /ExamplePanel/ }))
     })
 
-    expect(changes).toEqual([
-      { kind: 'query', value: 'Example panel' },
+    expect(selections).toEqual([
       {
-        kind: 'selection',
-        value: {
-          kind: 'component',
-          path: 'src/controls/example-panel.stories.tsx',
-        },
+        kind: 'component',
+        path: 'src/controls/example-panel.stories.tsx',
       },
     ])
   })
 })
 
 describe('report story list controls', () => {
-  it('expands unchanged variants and opens a selected image detail', async () => {
-    const changes: Array<Record<string, string | boolean>> = []
+  it('shows and hides unchanged variants when requested', async () => {
+    const changes: Array<{
+      kind: 'expanded'
+      storyId: string
+      expanded: boolean
+    }> = []
 
     function ControlledList() {
       const [expandedStoryIds, setExpandedStoryIds] = useState<string[]>([])
@@ -129,13 +164,6 @@ describe('report story list controls', () => {
               : current.filter((id) => id !== storyId),
           )
         },
-        onOpenDetail: (story, variant) => {
-          changes.push({
-            kind: 'detail',
-            storyId: story.id,
-            variantName: variant.name,
-          })
-        },
       })
     }
 
@@ -146,9 +174,7 @@ describe('report story list controls', () => {
         page.getByRole('button', { name: 'Show 1 unchanged variant' }),
       )
       await userEvent.click(
-        page.getByRole('button', {
-          name: 'Open Before image for ExamplePanel / Example panel opens (wide)',
-        }),
+        page.getByRole('button', { name: 'Hide 1 unchanged variant' }),
       )
     })
 
@@ -158,21 +184,41 @@ describe('report story list controls', () => {
         (heading) => heading.textContent,
       ),
       expandedControl: container
-        .querySelector('[aria-expanded="true"]')
+        .querySelector('[aria-expanded="false"]')
         ?.textContent.trim(),
-      storyId: changedStoryId,
     }).toEqual({
       changes: [
         { kind: 'expanded', storyId: changedStoryId, expanded: true },
-        {
-          kind: 'detail',
-          storyId: changedStoryId,
-          variantName: 'wide',
-        },
+        { kind: 'expanded', storyId: changedStoryId, expanded: false },
       ],
-      renderedVariants: ['wide', 'compact'],
-      expandedControl: 'Hide 1 unchanged variant',
-      storyId: changedStoryId,
+      renderedVariants: ['wide'],
+      expandedControl: 'Show 1 unchanged variant',
     })
+  })
+
+  it('reports the selected image detail to its owner', async () => {
+    const details: Array<{ storyId: string; variantName: string }> = []
+
+    mount(
+      createElement(ReportList, {
+        stories: [changedStory],
+        viewMode: 'pair',
+        expandedStoryIds: [],
+        onExpandedStoryChange: () => undefined,
+        onOpenDetail: (story, variant) => {
+          details.push({ storyId: story.id, variantName: variant.name })
+        },
+      }),
+    )
+
+    await act(async () => {
+      await userEvent.click(
+        page.getByRole('button', {
+          name: 'Open Before image for ExamplePanel / Example panel opens (wide)',
+        }),
+      )
+    })
+
+    expect(details).toEqual([{ storyId: changedStoryId, variantName: 'wide' }])
   })
 })
