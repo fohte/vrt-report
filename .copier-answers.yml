@@ -10,7 +10,7 @@ project_name: vrt-report
 release_type: node
 repo_id: '1386793519'
 repo_language: en
-storybook: false
+storybook: true
 subpackages: []
 type: node
 use_release_please: true

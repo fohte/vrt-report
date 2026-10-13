@@ -24,7 +24,15 @@ jobs:
         id: changes
         with:
           files: |
-            **
+            .storybook/**
+            src/**
+            package.json
+            pnpm-lock.yaml
+            pnpm-workspace.yaml
+            tsconfig.json
+            vitest.config.ts
+            vitest.screenshot.config.ts
+            .github/workflows/vrt.yml
 
   capture-root:
     needs: detect-changes-root
@@ -60,16 +68,16 @@ jobs:
       - name: Install pnpm dependencies
         run: pnpm install --frozen-lockfile
 
-      # The repository's `vrt:capture` script must write screenshots to
-      # `__screenshots__/vrt-report`.
+      # project must match the `name` passed to createStorybookProject() in
+      # vitest.screenshot.config.ts.
       - uses: fohte/storybook-vrt-workflows/vrt-capture@691148d6e8e53b86c8f93b5b54cadbd8308b06d3 # v0.1.6
         with:
-          project: vrt-report
+          project: storybook-screenshot-vrt-report
           shard: 1
           shards: 1
-          capture-script: vrt:capture
+          capture-script: storybook:screenshot
           package-dir: .
-          screenshots-dir: __screenshots__/vrt-report
+          screenshots-dir: __screenshots__/desktop
 
   report-root:
     needs: capture-root
@@ -114,7 +122,7 @@ jobs:
       - uses: fohte/storybook-vrt-workflows/vrt-report@691148d6e8e53b86c8f93b5b54cadbd8308b06d3 # v0.1.6
         with:
           package-dir: .
-          screenshots-dir: __screenshots__/vrt-report
+          screenshots-dir: __screenshots__/desktop
           r2-bucket: vrt-report-vrt
           github-token: ${{ secrets.GITHUB_TOKEN }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}

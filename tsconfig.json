@@ -3,12 +3,21 @@
     "@tsconfig/node-lts/tsconfig.json",
     "@tsconfig/strictest/tsconfig.json"
   ],
+  "include": ["**/*", ".storybook/**/*"],
   "exclude": ["**/*.cjs", "dist"],
   "compilerOptions": {
     "module": "preserve",
     "moduleResolution": "bundler",
     "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
     "paths": {
+      "#vrt-components/comparison-model": [
+        "./src/components/comparison-model.ts"
+      ],
+      "#vrt-components/*": ["./src/components/*.tsx"],
+      "#storybook.css": ["./src/storybook.css"],
       "#test-fixtures/*": ["./test/fixtures/*.ts"],
       "#report-client-logic": ["./src/report-logic.ts"],
       "#report-client-tree-model": ["./src/report-tree.ts"],
