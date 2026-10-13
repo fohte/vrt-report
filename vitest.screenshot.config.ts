@@ -22,4 +22,8 @@ export default defineConfig({
   // The Storybook Vitest project does not use the builder's Vite config.
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- createStorybookProject exposes this plugin list as any[].
   plugins: [tailwindcss(), ...storybookProject.plugins],
+  optimizeDeps: {
+    // UI source imports JSX and renderer entry points that need CJS interop.
+    include: ['react/jsx-runtime', 'react-dom'],
+  },
 })

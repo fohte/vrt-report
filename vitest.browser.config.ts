@@ -15,4 +15,8 @@ export default defineConfig({
       headless: true,
     },
   },
+  optimizeDeps: {
+    // UI source imports JSX and renderer entry points that need CJS interop.
+    include: ['react/jsx-runtime', 'react-dom'],
+  },
 })
