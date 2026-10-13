@@ -19,6 +19,18 @@ const storybookProject = createStorybookProject({
 
 export default defineConfig({
   ...storybookProject,
+  resolve: {
+    alias: [
+      {
+        find: /^#report-logic$/,
+        replacement: path.resolve(dirname, 'src/report-logic.ts'),
+      },
+      {
+        find: /^#report-tree$/,
+        replacement: path.resolve(dirname, 'src/report-tree.ts'),
+      },
+    ],
+  },
   // The Storybook Vitest project does not use the builder's Vite config.
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- createStorybookProject exposes this plugin list as any[].
   plugins: [tailwindcss(), ...storybookProject.plugins],
