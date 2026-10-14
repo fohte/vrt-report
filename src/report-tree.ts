@@ -1,9 +1,14 @@
-import type { ReportStory } from '#report-logic'
+import type { ReportStatus, ReportStory } from '#report-logic'
 
-type StoryTreeComponent = {
+export type StoryTreeStory = Pick<
+  ReportStory,
+  'id' | 'component' | 'sourcePath' | 'directories'
+> & { variants: { status: ReportStatus }[] }
+
+export type StoryTreeComponent = {
   component: string
   sourcePath: string
-  stories: ReportStory[]
+  stories: StoryTreeStory[]
 }
 
 export type StoryTreeNode = {
@@ -13,7 +18,7 @@ export type StoryTreeNode = {
 
 export type StoryTreeDirectory = StoryTreeNode & { path: string }
 
-export const buildStoryTree = (stories: ReportStory[]): StoryTreeNode => {
+export const buildStoryTree = (stories: StoryTreeStory[]): StoryTreeNode => {
   const root: StoryTreeNode = { children: new Map(), components: new Map() }
   for (const story of stories) {
     let node = root

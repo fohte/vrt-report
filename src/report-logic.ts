@@ -1,8 +1,14 @@
 import type { ReportModel } from '#report-model'
+import type { ComparisonVariant } from '#vrt-components/comparison-model'
 
 export type ReportStory = ReportModel['stories'][number]
 export type ReportVariant = ReportStory['variants'][number]
 export type ReportStatus = ReportVariant['status']
+export type ReportVariantView = Omit<ReportVariant, 'key'> &
+  Pick<ComparisonVariant, 'before' | 'after' | 'diff'>
+export type ReportStoryView = Omit<ReportStory, 'variants'> & {
+  variants: ReportVariantView[]
+}
 export type ReportFilter =
   'all' | 'changes' | 'passed' | 'changed' | 'new' | 'deleted'
 export type ReportSelection =
@@ -15,10 +21,12 @@ export type DetailEntry = {
   variant: ReportVariant
 }
 
-export type StoryVariantGroups = {
-  changed: ReportVariant[]
-  unchanged: ReportVariant[]
-  initial: ReportVariant[]
+export type StoryVariantGroups<
+  Variant extends { status: ReportStatus } = ReportVariant,
+> = {
+  changed: Variant[]
+  unchanged: Variant[]
+  initial: Variant[]
 }
 
 export type DetailPosition = {
@@ -27,10 +35,24 @@ export type DetailPosition = {
   navigable: boolean
 }
 
+type StoryWithStatuses = { variants: Pick<ReportVariant, 'status'>[] }
+type SearchableStory = Pick<
+  ReportStory,
+  'storyId' | 'displayName' | 'component' | 'sourcePath'
+> & {
+  variants: Pick<ReportVariant, 'name'>[]
+}
+type VisibleStory = Pick<
+  ReportStory,
+  'storyId' | 'displayName' | 'component' | 'sourcePath' | 'directories'
+> & {
+  variants: Pick<ReportVariant, 'name' | 'status'>[]
+}
+
 export const detailId = (story: ReportStory, variant: ReportVariant): string =>
   story.id + '/' + variant.name
 
-export const storyStatuses = (story: ReportStory): ReportStatus[] => [
+export const storyStatuses = (story: StoryWithStatuses): ReportStatus[] => [
   ...new Set(
     story.variants
       .map((variant) => variant.status)
@@ -41,23 +63,28 @@ export const storyStatuses = (story: ReportStory): ReportStatus[] => [
 const hasChanges = (statuses: ReportStatus[]): boolean => statuses.length > 0
 
 export const countStoriesWithStatus = (
-  stories: ReportStory[],
+  stories: StoryWithStatuses[],
   status: ReportStatus,
 ): number =>
   stories.filter((story) => storyStatuses(story).includes(status)).length
 
-export const countStoriesWithChanges = (stories: ReportStory[]): number =>
+export const countStoriesWithChanges = (stories: StoryWithStatuses[]): number =>
   stories.filter((story) => hasChanges(storyStatuses(story))).length
 
-export const countPassedStories = (stories: ReportStory[]): number =>
+export const countPassedStories = (stories: StoryWithStatuses[]): number =>
   stories.filter((story) => !hasChanges(storyStatuses(story))).length
 
-export const getComponentStatuses = (stories: ReportStory[]): ReportStatus[] =>
+export const getComponentStatuses = (
+  stories: StoryWithStatuses[],
+): ReportStatus[] =>
   (['changed', 'new', 'deleted'] as const).filter((status) =>
     stories.some((story) => storyStatuses(story).includes(status)),
   )
 
-export const matchesSearch = (story: ReportStory, query: string): boolean => {
+export const matchesSearch = (
+  story: SearchableStory,
+  query: string,
+): boolean => {
   if (!query) return true
   const text = [
     story.storyId,
@@ -74,7 +101,10 @@ export const matchesSearch = (story: ReportStory, query: string): boolean => {
 export const normalizeSearchQuery = (query: string): string =>
   query.trim().toLowerCase()
 
-const matchesFilter = (story: ReportStory, filter: ReportFilter): boolean => {
+const matchesFilter = (
+  story: StoryWithStatuses,
+  filter: ReportFilter,
+): boolean => {
   const statuses = storyStatuses(story)
   switch (filter) {
     case 'all':
@@ -89,7 +119,7 @@ const matchesFilter = (story: ReportStory, filter: ReportFilter): boolean => {
 }
 
 const matchesSelection = (
-  story: ReportStory,
+  story: Pick<VisibleStory, 'sourcePath' | 'directories'>,
   selection: ReportSelection,
 ): boolean => {
   if (!selection) return true
@@ -101,14 +131,14 @@ const matchesSelection = (
   )
 }
 
-export const getVisibleStories = (
-  stories: ReportStory[],
+export const getVisibleStories = <Story extends VisibleStory>(
+  stories: Story[],
   criteria: {
     query: string
     filter: ReportFilter
     selection: ReportSelection
   },
-): ReportStory[] =>
+): Story[] =>
   stories.filter(
     (story) =>
       matchesSearch(story, criteria.query) &&
@@ -116,9 +146,11 @@ export const getVisibleStories = (
       matchesSelection(story, criteria.selection),
   )
 
-export const getStoryVariantGroups = (
-  story: ReportStory,
-): StoryVariantGroups => {
+export const getStoryVariantGroups = <
+  Variant extends { status: ReportStatus },
+>(story: {
+  variants: Variant[]
+}): StoryVariantGroups<Variant> => {
   const changed = story.variants.filter(
     (variant) => variant.status !== 'unchanged',
   )
@@ -131,6 +163,12 @@ export const getStoryVariantGroups = (
     initial: changed.length > 0 ? changed : unchanged,
   }
 }
+
+export const getVisibleVariants = <Variant extends { status: ReportStatus }>(
+  groups: StoryVariantGroups<Variant>,
+  expanded: boolean,
+): Variant[] =>
+  expanded ? [...groups.changed, ...groups.unchanged] : groups.initial
 
 export const createDetailEntryIndex = (
   stories: ReportStory[],
@@ -148,13 +186,11 @@ export const getVisibleDetailEntries = (
   expandedStoryIds: ReadonlySet<string>,
 ): DetailEntry[] =>
   stories.flatMap((story) => {
-    const { changed, unchanged, initial } = getStoryVariantGroups(story)
-    const visibleVariants =
-      changed.length === 0
-        ? initial
-        : expandedStoryIds.has(story.id)
-          ? [...changed, ...unchanged]
-          : initial
+    const groups = getStoryVariantGroups(story)
+    const visibleVariants = getVisibleVariants(
+      groups,
+      expandedStoryIds.has(story.id),
+    )
     return visibleVariants.map((variant) => ({ story, variant }))
   })
 
