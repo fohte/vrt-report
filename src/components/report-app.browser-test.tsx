@@ -36,6 +36,9 @@ const resetLocation = () => {
 const currentDetailId = () =>
   new URL(window.location.href).searchParams.get('id')
 
+const openChangedImageButtonName =
+  'Open Before image for ExamplePanel / Example panel opens (wide)'
+
 const visibleStoryTitles = (container: HTMLElement) =>
   [...container.querySelectorAll('article h2')].map((heading) =>
     heading.textContent.trim(),
@@ -108,7 +111,7 @@ describe('report application', () => {
     await act(async () => {
       await userEvent.click(
         page.getByRole('button', {
-          name: 'Open Before image for ExamplePanel / Example panel opens (wide)',
+          name: openChangedImageButtonName,
         }),
       )
       for (const mode of ['Diff', 'Slide', '2-up', 'Blend', 'Toggle']) {
@@ -144,7 +147,7 @@ describe('report application', () => {
     })
   })
 
-  it('supports arrow and vim navigation while ignoring keys typed in search', async () => {
+  it('supports arrow and vim navigation while ignoring search input events', async () => {
     resetLocation()
     const firstId = `${changedStoryId}/wide`
     const secondId = `${alternateChangedStory.id}/wide`
@@ -153,11 +156,21 @@ describe('report application', () => {
         stories: [changedStory, alternateChangedStory],
       }),
     )
+    const searchInput = container.querySelector<HTMLInputElement>(
+      'input[type="search"]',
+    )
+
+    await act(async () => {
+      await userEvent.fill(
+        page.getByRole('searchbox', { name: 'Filter stories' }),
+        'opens',
+      )
+    })
 
     await act(async () => {
       await userEvent.click(
         page.getByRole('button', {
-          name: 'Open Before image for ExamplePanel / Example panel opens (wide)',
+          name: openChangedImageButtonName,
         }),
       )
     })
@@ -182,18 +195,29 @@ describe('report application', () => {
     await act(async () => {
       await userEvent.keyboard('m')
     })
-    const searchInput = container.querySelector<HTMLInputElement>(
-      'input[type="search"]',
-    )
-    searchInput?.focus()
-    await act(async () => {
-      await userEvent.keyboard('ml')
+    const searchMarkerEvent = new KeyboardEvent('keydown', {
+      key: 'm',
+      bubbles: true,
+      cancelable: true,
+    })
+    const searchNavigationEvent = new KeyboardEvent('keydown', {
+      key: 'l',
+      bubbles: true,
+      cancelable: true,
+    })
+    act(() => {
+      searchInput?.dispatchEvent(searchMarkerEvent)
+      searchInput?.dispatchEvent(searchNavigationEvent)
     })
 
     expect({
       navigation,
       detailIdAfterTyping: currentDetailId(),
       searchQuery: searchInput?.value ?? '',
+      shortcutEventsPrevented: [
+        searchMarkerEvent.defaultPrevented,
+        searchNavigationEvent.defaultPrevented,
+      ],
       markersPressed: [
         ...container.querySelectorAll<HTMLButtonElement>(
           '[role="dialog"] button',
@@ -204,8 +228,71 @@ describe('report application', () => {
     }).toEqual({
       navigation: [firstId, secondId, firstId, secondId, firstId],
       detailIdAfterTyping: firstId,
-      searchQuery: 'ml',
+      searchQuery: 'opens',
+      shortcutEventsPrevented: [false, false],
       markersPressed: 'true',
+    })
+  })
+
+  it('toggles difference markers with the m shortcut', async () => {
+    resetLocation()
+    const container = mount(
+      createElement(ReportApp, { stories: [changedStory] }),
+    )
+
+    await act(async () => {
+      await userEvent.click(
+        page.getByRole('button', { name: openChangedImageButtonName }),
+      )
+      await userEvent.keyboard('m')
+    })
+
+    expect(
+      container
+        .querySelector('[role="dialog"] button[aria-keyshortcuts="m"]')
+        ?.getAttribute('aria-pressed'),
+    ).toEqual('true')
+  })
+
+  it('moves focus into the detail and restores it to the opening image', async () => {
+    resetLocation()
+    const container = mount(
+      createElement(ReportApp, { stories: [changedStory] }),
+    )
+
+    await act(async () => {
+      await userEvent.click(
+        page.getByRole('button', { name: openChangedImageButtonName }),
+      )
+    })
+    const focusWhileOpen = document.activeElement?.getAttribute('aria-label')
+    const returned = new Promise<void>((resolve) => {
+      window.addEventListener(
+        'popstate',
+        () => {
+          resolve()
+        },
+        { once: true },
+      )
+    })
+    await act(async () => {
+      await userEvent.keyboard('{Escape}')
+      await returned
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => {
+          resolve()
+        })
+      })
+    })
+
+    expect({
+      detailOpen: container.querySelector('dialog')?.open ?? false,
+      focusWhileOpen,
+      focusAfterClose: document.activeElement?.getAttribute('aria-label'),
+    }).toEqual({
+      detailOpen: false,
+      focusWhileOpen: 'Close detail',
+      focusAfterClose: openChangedImageButtonName,
     })
   })
 

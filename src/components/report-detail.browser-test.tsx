@@ -48,44 +48,46 @@ afterEach(() => {
 })
 
 describe('report detail controls', () => {
-  it('reports selected comparison modes and marker toggles', async () => {
+  it('reports a selected comparison mode', async () => {
     const modeChanges: DetailComparisonMode[] = []
-    const actions: string[] = []
 
     mount({
       onModeChange: (mode) => {
         modeChanges.push(mode)
       },
+    })
+
+    await act(async () => {
+      await userEvent.click(page.getByRole('button', { name: 'Blend' }))
+    })
+
+    expect(modeChanges).toEqual(['blend'])
+  })
+
+  it('reports a marker toggle', async () => {
+    const actions: string[] = []
+
+    mount({
       onMarkersToggle: () => {
         actions.push('markers')
       },
     })
 
     await act(async () => {
-      await userEvent.click(page.getByRole('button', { name: 'Blend' }))
       await userEvent.click(
         page.getByRole('button', { name: 'Difference markers' }),
       )
     })
 
-    expect({ modeChanges, actions }).toEqual({
-      modeChanges: ['blend'],
-      actions: ['markers'],
-    })
+    expect(actions).toEqual(['markers'])
   })
 
-  it('reports previous, next, and close actions', async () => {
+  it('reports a previous-image request', async () => {
     const actions: string[] = []
 
     mount({
       onPrevious: () => {
         actions.push('previous')
-      },
-      onNext: () => {
-        actions.push('next')
-      },
-      onClose: () => {
-        actions.push('close')
       },
     })
 
@@ -93,10 +95,40 @@ describe('report detail controls', () => {
       await userEvent.click(
         page.getByRole('button', { name: 'Previous image' }),
       )
+    })
+
+    expect(actions).toEqual(['previous'])
+  })
+
+  it('reports a next-image request', async () => {
+    const actions: string[] = []
+
+    mount({
+      onNext: () => {
+        actions.push('next')
+      },
+    })
+
+    await act(async () => {
       await userEvent.click(page.getByRole('button', { name: 'Next image' }))
+    })
+
+    expect(actions).toEqual(['next'])
+  })
+
+  it('reports a close request', async () => {
+    const actions: string[] = []
+
+    mount({
+      onClose: () => {
+        actions.push('close')
+      },
+    })
+
+    await act(async () => {
       await userEvent.click(page.getByRole('button', { name: 'Close detail' }))
     })
 
-    expect(actions).toEqual(['previous', 'next', 'close'])
+    expect(actions).toEqual(['close'])
   })
 })

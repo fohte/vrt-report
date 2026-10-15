@@ -1,5 +1,6 @@
 import { Button } from '@fohte/ui/button'
 import { SegmentedControl } from '@fohte/ui/segmented-control'
+import { useEffect, useRef } from 'react'
 
 import type { ReportStoryView, ReportVariantView } from '#report-logic'
 import { Comparison, hasDiffMarkers } from '#vrt-components/comparison'
@@ -41,17 +42,38 @@ export function ReportDetail({
   onNext,
   onClose,
 }: ReportDetailProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
   const storyLabel = story.displayName ?? story.storyId
   const comparisonLabel = story.component
     ? `${story.component} / ${storyLabel}`
     : storyLabel
 
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (dialog === null) return
+    dialog.showModal()
+    dialog.querySelector<HTMLElement>('[aria-label="Close detail"]')?.focus()
+    return () => {
+      if (dialog.open) dialog.close()
+    }
+  }, [])
+
+  const requestClose = () => {
+    if (dialogRef.current?.open === true) dialogRef.current.close()
+    onClose()
+  }
+
   return (
-    <div
+    <dialog
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="report-detail-title"
-      className="fixed inset-0 z-50 flex h-dvh flex-col overflow-hidden bg-background text-foreground"
+      onCancel={(event) => {
+        event.preventDefault()
+        requestClose()
+      }}
+      className="fixed inset-0 m-0 flex h-dvh w-screen max-h-none max-w-none flex-col overflow-hidden border-0 bg-background p-0 text-foreground backdrop:bg-black/50"
     >
       <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border bg-background px-4 py-3 sm:px-6">
         <div className="min-w-0 flex-1 basis-full sm:basis-48">
@@ -131,7 +153,7 @@ export function ReportDetail({
           variant="secondary"
           size="sm"
           aria-label="Close detail"
-          onClick={onClose}
+          onClick={requestClose}
         >
           Close
         </Button>
@@ -148,6 +170,6 @@ export function ReportDetail({
           />
         </div>
       </main>
-    </div>
+    </dialog>
   )
 }

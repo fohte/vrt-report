@@ -24,6 +24,10 @@ export default defineConfig({
         replacement: `${resolve(import.meta.dirname, 'src')}/report-tree.ts`,
       },
       {
+        find: /^#report-data$/,
+        replacement: `${resolve(import.meta.dirname, 'src')}/report-data.ts`,
+      },
+      {
         find: /^#vrt-components\/comparison-model$/,
         replacement: `${resolve(import.meta.dirname, 'src')}/components/comparison-model.ts`,
       },

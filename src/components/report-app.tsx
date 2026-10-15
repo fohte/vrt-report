@@ -95,6 +95,7 @@ export function ReportApp({
     return new URL(window.location.href).searchParams.get('id')
   })
   const initializedFromLocation = useRef(initialDetailId === undefined)
+  const openingElement = useRef<HTMLElement | null>(null)
 
   const matchingStories = useMemo(
     () =>
@@ -132,6 +133,19 @@ export function ReportApp({
     detailPosition.index < 0
       ? `0 / ${String(detailPosition.entries.length)}`
       : `${String(detailPosition.index + 1)} / ${String(detailPosition.entries.length)}`
+
+  useEffect(() => {
+    if (detailEntry !== undefined) return
+    const element = openingElement.current
+    if (element === null) return
+    openingElement.current = null
+    const frame = window.requestAnimationFrame(() => {
+      if (element.isConnected) element.focus()
+    })
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [detailEntry])
 
   useEffect(() => {
     if (!initializedFromLocation.current) return
@@ -214,12 +228,6 @@ export function ReportApp({
       )
         return
 
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        closeDetail()
-        return
-      }
-
       const key = event.key.toLowerCase()
       if (
         key === 'm' &&
@@ -286,6 +294,11 @@ export function ReportApp({
           }}
           onOpenDetail={(story, variant) => {
             const id = createDetailId(story, variant)
+            if (id === activeDetailId) return
+            openingElement.current =
+              document.activeElement instanceof HTMLElement
+                ? document.activeElement
+                : null
             updateDetailUrl(id, 'push')
             setActiveDetailId(id)
           }}
