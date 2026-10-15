@@ -8,13 +8,7 @@
     "reg-simple-keygen-plugin"
   ],
   "vite": {
-    "entry": [
-      "src/report-client.js",
-      "src/report-template.html",
-      "src/report-styles.css",
-      "src/report-detail-styles.css",
-      "src/report-responsive.css"
-    ]
+    "entry": ["src/report-entry.tsx", "src/report-template.html"]
   },
   "ignore": ["commitlint-plugin-no-external-refs.cjs"]
 }

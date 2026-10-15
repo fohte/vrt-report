@@ -16,10 +16,17 @@ export type ReportSelection =
   | { kind: 'component'; path: string }
   | null
 
-export type DetailEntry = {
-  story: ReportStory
-  variant: ReportVariant
+type DetailStory = {
+  id: string
+  variants: { name: string; status: ReportStatus }[]
 }
+
+export type DetailEntry<Story extends DetailStory = ReportStory> = {
+  story: Story
+  variant: Story['variants'][number]
+}
+
+type AnyDetailEntry = DetailEntry<DetailStory>
 
 export type StoryVariantGroups<
   Variant extends { status: ReportStatus } = ReportVariant,
@@ -29,8 +36,8 @@ export type StoryVariantGroups<
   initial: Variant[]
 }
 
-export type DetailPosition = {
-  entries: DetailEntry[]
+export type DetailPosition<Entry extends AnyDetailEntry = DetailEntry> = {
+  entries: Entry[]
   index: number
   navigable: boolean
 }
@@ -49,8 +56,10 @@ type VisibleStory = Pick<
   variants: Pick<ReportVariant, 'name' | 'status'>[]
 }
 
-export const detailId = (story: ReportStory, variant: ReportVariant): string =>
-  story.id + '/' + variant.name
+export const detailId = (
+  story: Pick<ReportStory, 'id'>,
+  variant: Pick<ReportVariant, 'name'>,
+): string => story.id + '/' + variant.name
 
 export const storyStatuses = (story: StoryWithStatuses): ReportStatus[] => [
   ...new Set(
@@ -170,9 +179,9 @@ export const getVisibleVariants = <Variant extends { status: ReportStatus }>(
 ): Variant[] =>
   expanded ? [...groups.changed, ...groups.unchanged] : groups.initial
 
-export const createDetailEntryIndex = (
-  stories: ReportStory[],
-): Map<string, DetailEntry> =>
+export const createDetailEntryIndex = <Story extends DetailStory>(
+  stories: Story[],
+): Map<string, DetailEntry<Story>> =>
   new Map(
     stories.flatMap((story) =>
       story.variants.map(
@@ -181,10 +190,10 @@ export const createDetailEntryIndex = (
     ),
   )
 
-export const getVisibleDetailEntries = (
-  stories: ReportStory[],
+export const getVisibleDetailEntries = <Story extends DetailStory>(
+  stories: Story[],
   expandedStoryIds: ReadonlySet<string>,
-): DetailEntry[] =>
+): DetailEntry<Story>[] =>
   stories.flatMap((story) => {
     const groups = getStoryVariantGroups(story)
     const visibleVariants = getVisibleVariants(
@@ -194,10 +203,10 @@ export const getVisibleDetailEntries = (
     return visibleVariants.map((variant) => ({ story, variant }))
   })
 
-export const getDetailPosition = (
-  entries: DetailEntry[],
+export const getDetailPosition = <Entry extends AnyDetailEntry>(
+  entries: Entry[],
   selectedId: string | null,
-): DetailPosition => {
+): DetailPosition<Entry> => {
   const index =
     selectedId === null
       ? -1
@@ -207,10 +216,10 @@ export const getDetailPosition = (
   return { entries, index, navigable: entries.length >= 2 && index >= 0 }
 }
 
-export const getAdjacentDetailEntry = (
-  position: DetailPosition,
+export const getAdjacentDetailEntry = <Entry extends AnyDetailEntry>(
+  position: DetailPosition<Entry>,
   direction: -1 | 1,
-): DetailEntry | undefined => {
+): Entry | undefined => {
   if (!position.navigable) return undefined
   const nextIndex =
     (position.index + direction + position.entries.length) %

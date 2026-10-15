@@ -85,7 +85,7 @@ export const isRecord = (value: unknown): value is Record<string, unknown> =>
 export const isStorybookSourcePath = (path: string): boolean =>
   /\.stories\.(?:[cm]?[jt]sx?)$/.test(path)
 
-const isStringArray = (value: unknown): value is string[] =>
+export const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string')
 
 const isRegOutput = (value: unknown): value is RegOutput =>

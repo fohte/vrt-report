@@ -1,11 +1,13 @@
 import { resolve } from 'node:path'
 
+import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 import { viteSingleFile } from 'vite-plugin-singlefile'
 
 export default defineConfig({
   root: resolve(import.meta.dirname, 'src'),
   plugins: [
+    tailwindcss(),
     viteSingleFile({
       useRecommendedBuildConfig: true,
       removeViteModuleLoader: true,
@@ -14,16 +16,28 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: /^#report-client-logic$/,
+        find: /^#report-logic$/,
         replacement: `${resolve(import.meta.dirname, 'src')}/report-logic.ts`,
       },
       {
-        find: /^#report-client-tree-model$/,
+        find: /^#report-tree$/,
         replacement: `${resolve(import.meta.dirname, 'src')}/report-tree.ts`,
       },
       {
-        find: /^#(report-client-.+)$/,
-        replacement: `${resolve(import.meta.dirname, 'src')}/$1.js`,
+        find: /^#report-data$/,
+        replacement: `${resolve(import.meta.dirname, 'src')}/report-data.ts`,
+      },
+      {
+        find: /^#vrt-components\/comparison-model$/,
+        replacement: `${resolve(import.meta.dirname, 'src')}/components/comparison-model.ts`,
+      },
+      {
+        find: /^#vrt-components\/(.+)$/,
+        replacement: `${resolve(import.meta.dirname, 'src')}/components/$1.tsx`,
+      },
+      {
+        find: /^#storybook\.css$/,
+        replacement: `${resolve(import.meta.dirname, 'src')}/storybook.css`,
       },
     ],
   },
