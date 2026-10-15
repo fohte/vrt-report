@@ -17,8 +17,8 @@ const clientAssets = (html: string) => ({
   inlineStylesheets: [...html.matchAll(/<style\b/g)].length,
 })
 
-describe('report client build', () => {
-  it('inlines its JavaScript and CSS into one HTML file', () => {
+describe('report build', () => {
+  it('inlines the React app and Tailwind CSS into one HTML file', () => {
     expect(clientAssets(reportTemplate)).toEqual({
       externalScripts: 0,
       externalStylesheets: 0,
