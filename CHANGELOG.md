@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.3](https://github.com/fohte/vrt-report/compare/v0.1.2...v0.1.3) (2026-10-15)
+
+
+### Features
+
+* **report:** add image comparison components ([#32](https://github.com/fohte/vrt-report/issues/32)) ([10a260e](https://github.com/fohte/vrt-report/commit/10a260e87819194f6ff54197703fb0b2fdb43a0c))
+* **report:** add React shell components ([#34](https://github.com/fohte/vrt-report/issues/34)) ([95729a7](https://github.com/fohte/vrt-report/commit/95729a7314917f6c0bd2861a45698fba2fbce17b))
+* **report:** pre-build the report UI into a single HTML file ([#30](https://github.com/fohte/vrt-report/issues/30)) ([4cdc5da](https://github.com/fohte/vrt-report/commit/4cdc5dadb9a19795c233d0dbcfb4639c795baec1))
+* **report:** render reports with @fohte/ui ([#35](https://github.com/fohte/vrt-report/issues/35)) ([b8749c8](https://github.com/fohte/vrt-report/commit/b8749c8da0b6a11d480957aa3c84ed53af5ec186))
+* **report:** support diff region markers in detail view ([#27](https://github.com/fohte/vrt-report/issues/27)) ([1d58a3a](https://github.com/fohte/vrt-report/commit/1d58a3aa283a6d47aa360fd858bffa94eeec50d2))
+* **report:** support previous/next navigation and URL synchronization in detail view ([#26](https://github.com/fohte/vrt-report/issues/26)) ([bbdac1c](https://github.com/fohte/vrt-report/commit/bbdac1ce76733488da4311b18eaf8c39f457b75f))
+
 ## [0.1.2](https://github.com/fohte/vrt-report/compare/v0.1.1...v0.1.2) (2026-10-04)
 
 
