@@ -131,6 +131,13 @@ dist
 
 # Storybook build output
 storybook-static/
+<<<<<<< before updating
 __screenshots__/desktop/
 .vitest-attachments/
 src/components/__screenshots__/
+||||||| last update
+=======
+
+# Captured VRT screenshots
+/__screenshots__/
+>>>>>>> after updating
